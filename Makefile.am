@@ -19,11 +19,6 @@ EXTRA_DIST = Cargo.toml \
 	$(desktop_in_files) \
 	$(null)
 
-EXTRA_PROGRAMS = target/@CARGO_TARGET_DIR@/gpsami
-
-# we need this dummy target for make dist
-target_@CARGO_TARGET_DIR@_gpsami_SOURCES =
-
 all-local:
 	cargo build --release
 
