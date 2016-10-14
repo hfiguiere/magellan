@@ -34,6 +34,9 @@ install-exec-local:
 	$(MKDIR_P) $(DESTDIR)$(bindir)
 	$(INSTALL) -c -m 755 target/@CARGO_TARGET_DIR@/gpsami $(DESTDIR)$(bindir)
 
+uninstall-local:
+	rm $(DESTDIR)$(bindir)/gpsami
+
 DISTCLEANFILES =                                \
 	$(desktop_files)                        \
 	$(null)
