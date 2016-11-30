@@ -5,21 +5,15 @@ authors = ["Hubert Figuière <hub@figuiere.net>"]
 license = "GPL-3"
 
 [dependencies]
-glib-sys = { version="0.3.1", git = "https://github.com/gtk-rs/sys" }
-gobject-sys = { version="0.3.1", git = "https://github.com/gtk-rs/sys" }
-gio-sys = { version="0.3.1", git = "https://github.com/gtk-rs/sys" }
-glib = { version="0.1.0", git="https://github.com/gtk-rs/glib", features = ["v2_40"] }
-gio = { version="0.1.0", git="https://github.com/gtk-rs/gio", features = ["v2_40"] }
-gtk = { version="0.1.0", git="https://github.com/gtk-rs/gtk", features = ["v3_12"] }
+glib-sys = "0.3.2"
+gobject-sys = "0.3.2"
+gio-sys = "0.3.2"
+glib = { version="0.1.1", features = ["v2_40"] }
+gio = { version="0.1.1", features = ["v2_40"] }
+gtk = { version="0.1.1", features = ["v3_12"] }
 rustc-serialize = "0.3"
 libudev = "0.2.0"
-gudev = { version="0.1.0", git="https://github.com/hfiguiere/gudev-rs" }
-
-[replace]
-"gobject-sys:0.3.1" = { git = "https://github.com/gtk-rs/sys" }
-"gio-sys:0.3.1" = { git = "https://github.com/gtk-rs/sys" }
-"glib-sys:0.3.1" = { git = "https://github.com/gtk-rs/sys" }
-"glib:0.1.0" = { git="https://github.com/gtk-rs/glib", features = ["v2_40"] }
+gudev = { version="0.1.1", git="https://github.com/hfiguiere/gudev-rs" }
 
 [[bin]]
 name = "gpsami"
