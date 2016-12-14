@@ -12,6 +12,7 @@ ui_files = src/mgwindow.ui \
 	$(null)
 
 EXTRA_DIST = Cargo.toml \
+	Cargo.lock \
 	src/devices.json  \
 	src/devices.rs  \
 	src/drivers.rs  \
@@ -38,14 +39,14 @@ update-icon-cache:
 	fi
 
 all-local:
-	cargo build --release
+	(cd $(top_srcdir) ; CARGO_TARGET_DIR=@abs_top_builddir@/target cargo build --release)
 
 clean-local:
-	-cargo clean
+	-(cd $(top_srcdir) ; CARGO_TARGET_DIR=@abs_top_builddir@/target cargo clean)
 
 install-exec-local:
 	$(MKDIR_P) $(DESTDIR)$(bindir)
-	$(INSTALL) -c -m 755 target/@CARGO_TARGET_DIR@/gpsami $(DESTDIR)$(bindir)
+	$(INSTALL) -c -m 755 target/@CARGO_TARGET_SUBDIR@/gpsami $(DESTDIR)$(bindir)
 
 uninstall-local:
 	rm $(DESTDIR)$(bindir)/gpsami
@@ -55,4 +56,5 @@ DISTCLEANFILES =                                \
 	$(null)
 
 check:
+	(cd $(top_srcdir) ; CARGO_TARGET_DIR=@abs_top_builddir@/target cargo test --release)
 	desktop-file-validate $(desktop_files)

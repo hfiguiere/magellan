@@ -1,7 +1,7 @@
 AC_INIT([gpsami], m4_esyscmd([grep ^version Cargo.toml | awk '{print $3}' | tr -d '"' | tr -d "\n"]), [hub@figuiere.net])
 AM_INIT_AUTOMAKE([1.11 foreign no-dependencies no-dist-gzip dist-xz subdir-objects])
 
-VERSION=$(grep ^version Cargo.toml | awk '{print $3}' | tr -d '"' | tr -d "\n")
+VERSION=$(grep ^version $srcdir/Cargo.toml | awk '{print $3}' | tr -d '"' | tr -d "\n")
 
 AC_CHECK_PROG(CARGO, [cargo], [yes], [no])
 AS_IF(test x$CARGO = xno,
@@ -13,8 +13,8 @@ AS_IF(test x$RUSTC = xno,
 )
 
 dnl Release build we do.
-CARGO_TARGET_DIR=release
-AC_SUBST(CARGO_TARGET_DIR)
+CARGO_TARGET_SUBDIR=release
+AC_SUBST(CARGO_TARGET_SUBDIR)
 
 AC_SUBST(VERSION)
 
