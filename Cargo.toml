@@ -13,7 +13,7 @@ gio = { version="0.1.1", features = ["v2_40"] }
 gtk = { version="0.1.1", features = ["v3_12"] }
 rustc-serialize = "0.3"
 libudev = "0.2.0"
-gudev = { version="0.1.1", git="https://github.com/hfiguiere/gudev-rs" }
+gudev = { version="0.2.0" }
 
 [[bin]]
 name = "gpsami"
