@@ -76,7 +76,12 @@ impl MgApplication {
             me.borrow().device_manager.gudev_client.connect_uevent(move |_, action, device| {
                 let subsystem = device.get_subsystem().unwrap_or("".to_string());
                 println!("received event {} {}", action, subsystem);
-                me_too.borrow_mut().rescan_devices();
+                match me_too.try_borrow_mut() {
+                    Ok(mut m) => m.rescan_devices(),
+                    _ => {
+                        println!("can't trigger rescan");
+                    }
+                };
             });
         }
         {
