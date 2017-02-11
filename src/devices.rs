@@ -136,7 +136,10 @@ impl Manager {
             |dev|  {
                 let path = dev.devnode().unwrap().to_path_buf();
                 let id = dev.sysname().to_string_lossy().into_owned();
-                let label = dev.property_value("ID_MODEL_FROM_DATABASE").unwrap().to_string_lossy().into_owned();
+                let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
+                    Some(s) => s.to_string_lossy().into_owned(),
+                    None => String::from("(Unknown)")
+                };
                 drivers::Port { id: id, label: label, path: path }
             }).collect();
         return dv;
