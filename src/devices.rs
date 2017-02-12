@@ -52,7 +52,7 @@ pub struct Manager {
 
     udev_context: libudev::Context,
     pub gudev_client: gudev::Client, // gudev client. We need to keep it alive.
-    device_filter: Option<drivers::PortType>,
+    device_filter: Option<Vec<drivers::PortType>>,
 }
 
 impl Manager {
@@ -79,7 +79,7 @@ impl Manager {
         manager
     }
 
-    fn listen_for_devices(&mut self, port_type: drivers::PortType) {
+    fn listen_for_devices(&mut self, port_type: Vec<drivers::PortType>) {
         // XXX set the listener event filtering...
         self.device_filter = Some(port_type);
     }
@@ -111,41 +111,50 @@ impl Manager {
         }
     }
 
-    fn list_ports(&self, port_filter: drivers::PortType) -> Vec<drivers::Port> {
-        let enumerator = libudev::Enumerator::new(&self.udev_context);
-        if enumerator.is_err() {
-            return Vec::new();
-        }
+    fn list_ports(&self, port_filters: Vec<drivers::PortType>) -> Vec<drivers::Port> {
+        let mut dv: Vec<drivers::Port> = vec![];
+        for port_filter in port_filters {
+            let enumerator = libudev::Enumerator::new(&self.udev_context);
+            if enumerator.is_err() {
+                return Vec::new();
+            }
 
-        let mut e = enumerator.unwrap();
-        match port_filter {
-            drivers::PortType::UsbSerial => {
-                e.match_subsystem("tty");
-                e.match_property("ID_BUS", "usb");
-            },
-            _ => {
-            },
-        }
+            let mut e = enumerator.unwrap();
+            match port_filter {
+                drivers::PortType::UsbSerial => {
+                    e.match_subsystem("tty");
+                    e.match_property("ID_BUS", "usb");
+                },
+                drivers::PortType::RfComm => {
+                    // it seems the only way is to use this filter.
+                    e.match_subsystem("tty");
+                    e.match_sysname("rfcomm[0-9]");
+                },
+                _ => {
+                },
+            }
 
-        let devices = e.scan_devices();
-        if devices.is_err() {
-            return Vec::new();
+            let devices = e.scan_devices();
+            if devices.is_err() {
+                return Vec::new();
+            }
+            let ds = devices.unwrap();
+            let mut dv2: Vec<drivers::Port> = ds.map(
+                |dev|  {
+                    let path = dev.devnode().unwrap().to_path_buf();
+                    let id = dev.sysname().to_string_lossy().into_owned();
+                    let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
+                        Some(s) => s.to_string_lossy().into_owned(),
+                        None => String::from("(Unknown)")
+                    };
+                    drivers::Port { id: id, label: label, path: path }
+                }).collect();
+            dv.append(&mut dv2);
         }
-        let ds = devices.unwrap();
-        let dv: Vec<drivers::Port> = ds.map(
-            |dev|  {
-                let path = dev.devnode().unwrap().to_path_buf();
-                let id = dev.sysname().to_string_lossy().into_owned();
-                let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
-                    Some(s) => s.to_string_lossy().into_owned(),
-                    None => String::from("(Unknown)")
-                };
-                drivers::Port { id: id, label: label, path: path }
-            }).collect();
         return dv;
     }
 
-    fn get_port_filter_for_model(&self, model: &str) -> drivers::PortType {
+    fn get_port_filter_for_model(&self, model: &str) -> Vec<drivers::PortType> {
         let port_filter = match self.devices.iter().find(
             |&device| {
                 &device.id == model
@@ -156,11 +165,11 @@ impl Manager {
                         driver.id == device.driver
                     }) {
                     Some(driver) => driver.ports.clone(),
-                    _=> drivers::PortType::None,
+                    _=> vec![drivers::PortType::None],
                 }
             },
             None =>
-                drivers::PortType::None
+                vec![drivers::PortType::None]
         };
         return port_filter
     }

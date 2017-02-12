@@ -9,8 +9,13 @@ Supported devices
 We currently only support devices that gpsbabel supports. Albeit it is
 mostly untested. We use gpsbabel to perform the download.
 
+USB Serial or Bluetooth Serial (SPP through rfcomm) are the only
+connectivity types supported for now.
+
 Adding devices
 --------------
+
+# Device definitions
 
 A device list is in src/devices.json. The file is currently inlined in
 the code, so you'd need to rebuild the application for changes to take
@@ -33,10 +38,10 @@ Unsupported capabilties:
 
 Drivers are defined with the following struct:
 * id: id of the driver as referenced by entry in the devices list
-* ports: kind of ports the driver support. "UsbSerial" is the only
-  currently supported value
+* ports: kind of ports the driver support (an array). "UsbSerial" and
+  "RfComm" are the only currently supported values.
 
-If your device needs a new driver.
+# If your device needs a new driver.
 
 If it works with gpsbabel already, it probably just need the driver
 entry in the devices.json and adding the proper match pattern in
@@ -58,3 +63,5 @@ Applications to configure GPS:
 * Wintec WBT 201 GPS and Free Operating Systems http://www.daria.co.uk/gps
 
 * BT747 http://www.bt747.org/
+
+* gpsd http://www.catb.org/gpsd/

@@ -27,13 +27,14 @@ pub struct Port {
 pub enum PortType {
     None,
     UsbSerial,
+    RfComm,     // Bluetooth Serial
 }
 
 #[derive(Clone, Debug, RustcDecodable)]
 pub struct Desc {
     pub id: String,
     // the port to look for.
-    pub ports: PortType,
+    pub ports: Vec<PortType>,
 }
 
 pub enum Error {

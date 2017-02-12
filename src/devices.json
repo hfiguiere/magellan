@@ -125,27 +125,40 @@
   "drivers" : [
     {
       "id": "baroiq",
-      "ports": "UsbSerial"
+      "ports": [
+        "UsbSerial"
+      ]
     },
     {
       "id": "m241",
-      "ports": "UsbSerial"
+      "ports": [
+        "UsbSerial",
+        "RfComm"
+      ]
     },
     {
       "id": "mtk",
-      "ports": "UsbSerial"
+      "ports": [
+        "UsbSerial"
+      ]
     },
     {
       "id": "dg-100",
-      "ports": "UsbSerial"
+      "ports": [
+        "UsbSerial"
+      ]
     },
     {
       "id": "dg-200",
-      "ports": "UsbSerial"
+      "ports": [
+        "UsbSerial"
+      ]
     },
     {
       "id": "navilink",
-      "ports": "UsbSerial"
+      "ports": [
+        "UsbSerial"
+      ]
     }
   ]
 }
