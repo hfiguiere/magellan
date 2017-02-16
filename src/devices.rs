@@ -122,13 +122,25 @@ impl Manager {
             let mut e = enumerator.unwrap();
             match port_filter {
                 drivers::PortType::UsbSerial => {
-                    e.match_subsystem("tty");
-                    e.match_property("ID_BUS", "usb");
+                    if e.match_subsystem("tty").is_err() {
+                        println!("match_subsystem(\"tty\") failed");
+                        return Vec::new();
+                    }
+                    if e.match_property("ID_BUS", "usb").is_err() {
+                        println!("match_property(\"bus = usb\") failed");
+                        return Vec::new();
+                    }
                 },
                 drivers::PortType::RfComm => {
                     // it seems the only way is to use this filter.
-                    e.match_subsystem("tty");
-                    e.match_sysname("rfcomm[0-9]");
+                    if e.match_subsystem("tty").is_err() {
+                        println!("match_subsystem(\"tty\") failed");
+                        return Vec::new();
+                    }
+                    if e.match_sysname("rfcomm[0-9]").is_err() {
+                        println!("match_sysname(\"rfcomm\") failed");
+                        return Vec::new();
+                    }
                 },
                 _ => {
                 },
