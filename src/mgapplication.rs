@@ -13,6 +13,7 @@
 
 use gio;
 use glib;
+use glib_sys;
 use gtk;
 use gtk::prelude::*;
 
@@ -20,11 +21,24 @@ use std;
 use std::path;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::VecDeque;
 
 use devices;
 use drivers;
 use utils;
 use ::Format;
+
+
+enum MgAction {
+    RescanDevices,
+    ModelChanged(String),
+    PortChanged(String),
+    StartErase,
+    StopErase,
+    StartDownload,
+    StopDownload,
+    SetOutputDir(path::PathBuf),
+}
 
 pub struct MgApplication {
     win: gtk::ApplicationWindow,
@@ -41,6 +55,9 @@ pub struct MgApplication {
     port_changed_signal: u64,
 
     output_dest_dir: path::PathBuf,
+
+    event_queue: VecDeque<MgAction>,
+    event_queue_source_id: u32,
 }
 
 impl MgApplication {
@@ -67,28 +84,47 @@ impl MgApplication {
             prefs_store: glib::KeyFile::new(),
             model_changed_signal: 0,
             port_changed_signal: 0,
-            output_dest_dir: path::PathBuf::new()
+            output_dest_dir: path::PathBuf::new(),
+            event_queue: VecDeque::new(),
+            event_queue_source_id: 0,
         };
 
         let me = Rc::new(RefCell::new(app));
         {
             let me_too = me.clone();
+            // gtk::idle_add is the version that must be called from the main thread.
+            let sourceid = gtk::idle_add(move || {
+                let mut app = me_too.borrow_mut();
+                if let Some(evt) = app.next_event() {
+                    app.process_event(evt);
+                }
+                glib::Continue(true)
+            });
+            me.borrow_mut().event_queue_source_id = sourceid;
+        }
+        {
+            let me_too = me.clone();
+            me.borrow_mut().win.connect_delete_event(move |_,_| {
+                let source_id = me_too.borrow().event_queue_source_id;
+                // XXX when this is in glib, remove the unsafe {}
+                unsafe { glib_sys::g_source_remove(source_id); }
+                me_too.borrow_mut().event_queue_source_id = 0;
+                Inhibit(false)
+            });
+        }
+        {
+            let me_too = me.clone();
             me.borrow().device_manager.gudev_client.connect_uevent(move |_, action, device| {
                 let subsystem = device.get_subsystem().unwrap_or("".to_string());
                 println!("received event {} {}", action, subsystem);
-                match me_too.try_borrow_mut() {
-                    Ok(mut m) => m.rescan_devices(),
-                    _ => {
-                        println!("can't trigger rescan");
-                    }
-                };
+                me_too.borrow_mut().post_event(MgAction::RescanDevices)
             });
         }
         {
             let me_too = me.clone();
             let signal_id = me.borrow_mut().model_combo.connect_changed(move |combo| {
                 if let Some(id) = combo.get_active_id() {
-                    me_too.borrow_mut().model_changed(&id);
+                    me_too.borrow_mut().post_event(MgAction::ModelChanged(id));
                 }
             });
             me.borrow_mut().model_changed_signal = signal_id;
@@ -97,7 +133,7 @@ impl MgApplication {
             let me_too = me.clone();
             let signal_id = me.borrow_mut().port_combo.connect_changed(move |entry| {
                 if let Some(id) = entry.get_active_id() {
-                    me_too.borrow_mut().port_changed(&id);
+                    me_too.borrow_mut().post_event(MgAction::PortChanged(id));
                 }
             });
             me.borrow_mut().port_changed_signal = signal_id;
@@ -106,7 +142,7 @@ impl MgApplication {
             let me_too = me.clone();
             let dload_action = gio::SimpleAction::new("download", None);
             dload_action.connect_activate(move |_,_| {
-                me_too.borrow().do_download();
+                me_too.borrow_mut().post_event(MgAction::StartDownload);
             });
             dload_action.set_enabled(false);
             me.borrow_mut().win.add_action(&dload_action);
@@ -116,7 +152,7 @@ impl MgApplication {
             let me_too = me.clone();
             let erase_action = gio::SimpleAction::new("erase", None);
             erase_action.connect_activate(move |_,_| {
-                me_too.borrow().do_erase();
+                me_too.borrow_mut().post_event(MgAction::StartErase);
             });
             erase_action.set_enabled(false);
             me.borrow_mut().win.add_action(&erase_action);
@@ -127,12 +163,7 @@ impl MgApplication {
                 let file_name = w.get_filename();
                 match file_name {
                     Some(f) => {
-                        me_too.borrow_mut().set_output_destination_dir(f.as_ref());
-                        me_too.borrow().prefs_store.set_string("output", "dir",
-                                                               f.to_str().unwrap());
-                        if me_too.borrow().save_settings().is_err() {
-                            println!("Error loading settings");
-                        }
+                        me_too.borrow_mut().post_event(MgAction::SetOutputDir(f))
                     },
                     _ => {}
                 }
@@ -145,6 +176,46 @@ impl MgApplication {
         output_dir_chooser.set_current_folder(
             me.borrow().prefs_store.get_string("output", "dir").unwrap_or("".to_owned()));
         me
+    }
+
+    fn post_event(&mut self, evt: MgAction) {
+        self.event_queue.push_back(evt);
+    }
+
+    fn next_event(&mut self) -> Option<MgAction> {
+        self.event_queue.pop_front()
+    }
+
+    fn process_event(&mut self, evt: MgAction) {
+        match evt {
+            MgAction::RescanDevices => {
+                self.rescan_devices();
+            },
+            MgAction::ModelChanged(ref id) => {
+                self.model_changed(id);
+            },
+            MgAction::PortChanged(ref id) => {
+                self.port_changed(id)
+            },
+            MgAction::StartErase => {
+                self.do_erase();
+            },
+            MgAction::StopErase => {
+            },
+            MgAction::StartDownload => {
+                self.do_download();
+            },
+            MgAction::StopDownload => {
+            },
+            MgAction::SetOutputDir(f) => {
+                self.set_output_destination_dir(f.as_ref());
+                self.prefs_store.set_string("output", "dir",
+                                            f.to_str().unwrap());
+                if self.save_settings().is_err() {
+                    println!("Error loading settings");
+                }
+            }
+        }
     }
 
     fn do_download(&self) {

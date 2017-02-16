@@ -12,6 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate gio;
+extern crate glib_sys;
 extern crate glib;
 extern crate gtk;
 extern crate libudev;
