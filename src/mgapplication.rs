@@ -34,9 +34,9 @@ enum MgAction {
     ModelChanged(String),
     PortChanged(String),
     StartErase,
-    StopErase,
+    DoneErase,
     StartDownload,
-    StopDownload,
+    DoneDownload,
     SetOutputDir(path::PathBuf),
 }
 
@@ -200,12 +200,12 @@ impl MgApplication {
             MgAction::StartErase => {
                 self.do_erase();
             },
-            MgAction::StopErase => {
+            MgAction::DoneErase => {
             },
             MgAction::StartDownload => {
                 self.do_download();
             },
-            MgAction::StopDownload => {
+            MgAction::DoneDownload => {
             },
             MgAction::SetOutputDir(f) => {
                 self.set_output_destination_dir(f.as_ref());
@@ -218,7 +218,14 @@ impl MgApplication {
         }
     }
 
-    fn do_download(&self) {
+    fn do_download(&mut self) {
+        // we wrap into this because we have early returns
+        // and want to ensure the event is posted.
+        self.really_do_download();
+        self.post_event(MgAction::DoneDownload);
+    }
+
+    fn really_do_download(&self) {
         let device = self.device_manager.get_device();
         if device.is_none() {
             println!("nodriver");
@@ -275,7 +282,12 @@ impl MgApplication {
         dialog.destroy();
     }
 
-    fn do_erase(&self) {
+    fn do_erase(&mut self) {
+        self.real_do_erase();
+        self.post_event(MgAction::DoneErase);
+    }
+
+    fn real_do_erase(&self) {
         let device = self.device_manager.get_device();
         if device.is_none() {
             println!("nodriver");
