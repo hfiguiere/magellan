@@ -56,6 +56,7 @@ pub struct MgApplication {
 
     output_dest_dir: path::PathBuf,
 
+    event_loop: Rc<RefCell<Fn() -> Continue>>,
     event_queue: VecDeque<MgAction>,
     event_queue_source_id: u32,
 }
@@ -85,6 +86,9 @@ impl MgApplication {
             model_changed_signal: 0,
             port_changed_signal: 0,
             output_dest_dir: path::PathBuf::new(),
+            event_loop: Rc::new(RefCell::new(move ||  -> Continue {
+                glib::Continue(false)
+            })),
             event_queue: VecDeque::new(),
             event_queue_source_id: 0,
         };
@@ -92,23 +96,27 @@ impl MgApplication {
         let me = Rc::new(RefCell::new(app));
         {
             let me_too = me.clone();
-            // gtk::idle_add is the version that must be called from the main thread.
-            let sourceid = gtk::idle_add(move || {
+            me.borrow_mut().event_loop = Rc::new(RefCell::new(move || {
                 let mut app = me_too.borrow_mut();
                 if let Some(evt) = app.next_event() {
                     app.process_event(evt);
                 }
-                glib::Continue(true)
-            });
-            me.borrow_mut().event_queue_source_id = sourceid;
+                let empty = app.event_queue.is_empty();
+                if empty {
+                   app.event_queue_source_id = 0;
+                }
+                glib::Continue(!empty)
+            }));
         }
         {
             let me_too = me.clone();
             me.borrow_mut().win.connect_delete_event(move |_,_| {
                 let source_id = me_too.borrow().event_queue_source_id;
-                // XXX when this is in glib, remove the unsafe {}
-                unsafe { glib_sys::g_source_remove(source_id); }
-                me_too.borrow_mut().event_queue_source_id = 0;
+                if source_id != 0 {
+                    // XXX when this is in glib, remove the unsafe {}
+                    unsafe { glib_sys::g_source_remove(source_id); }
+                    me_too.borrow_mut().event_queue_source_id = 0;
+                }
                 Inhibit(false)
             });
         }
@@ -180,6 +188,13 @@ impl MgApplication {
 
     fn post_event(&mut self, evt: MgAction) {
         self.event_queue.push_back(evt);
+
+        if self.event_queue_source_id == 0 {
+            // gtk::idle_add is the version that must be called from the main thread.
+            let f = self.event_loop.clone();
+            let sourceid = gtk::idle_add(move || { (f.borrow())() });
+            self.event_queue_source_id = sourceid;
+        }
     }
 
     fn next_event(&mut self) -> Option<MgAction> {
