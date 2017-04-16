@@ -13,7 +13,7 @@
 
 use gio;
 use glib;
-use glib_sys;
+use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 
@@ -58,7 +58,7 @@ pub struct MgApplication {
 
     event_loop: Rc<RefCell<Fn() -> Continue>>,
     event_queue: VecDeque<MgAction>,
-    event_queue_source_id: u32,
+    event_queue_source_id: glib::SourceId,
 }
 
 impl MgApplication {
@@ -90,7 +90,7 @@ impl MgApplication {
                 glib::Continue(false)
             })),
             event_queue: VecDeque::new(),
-            event_queue_source_id: 0,
+            event_queue_source_id: glib::SourceId::from_glib(0),
         };
 
         let me = Rc::new(RefCell::new(app));
@@ -103,19 +103,19 @@ impl MgApplication {
                 }
                 let empty = app.event_queue.is_empty();
                 if empty {
-                   app.event_queue_source_id = 0;
+                   app.event_queue_source_id = glib::SourceId::from_glib(0);
                 }
-                glib::Continue(!empty)
+                gtk::Continue(!empty)
             }));
         }
         {
             let me_too = me.clone();
             me.borrow_mut().win.connect_delete_event(move |_,_| {
-                let source_id = me_too.borrow().event_queue_source_id;
-                if source_id != 0 {
-                    // XXX when this is in glib, remove the unsafe {}
-                    unsafe { glib_sys::g_source_remove(source_id); }
-                    me_too.borrow_mut().event_queue_source_id = 0;
+                // XXX ideally source_remove would take a reference
+                let source_id = me_too.borrow().event_queue_source_id.clone();
+                if source_id != glib::SourceId::from_glib(0) {
+                    glib::source_remove(source_id);
+                    me_too.borrow_mut().event_queue_source_id = glib::SourceId::from_glib(0);
                 }
                 Inhibit(false)
             });
@@ -189,7 +189,7 @@ impl MgApplication {
     fn post_event(&mut self, evt: MgAction) {
         self.event_queue.push_back(evt);
 
-        if self.event_queue_source_id == 0 {
+        if self.event_queue_source_id == glib::SourceId::from_glib(0) {
             // gtk::idle_add is the version that must be called from the main thread.
             let f = self.event_loop.clone();
             let sourceid = gtk::idle_add(move || { (f.borrow())() });
@@ -399,13 +399,13 @@ impl MgApplication {
         // recursively borrow_mut self via the RefCell
         let model_too = model.clone();
         utils::block_signal(&mut self.model_combo, self.model_changed_signal, |obj| {
-            obj.set_active_id(Some(&model_too));
+            obj.set_active_id(model_too.as_ref());
         });
         self.model_changed(&model);
 
         let port_too = port.clone();
         utils::block_signal(&mut self.port_combo, self.port_changed_signal, |obj| {
-            obj.set_active_id(Some(&port_too));
+            obj.set_active_id(port_too.as_ref());
         });
         self.port_changed(&port);
     }
