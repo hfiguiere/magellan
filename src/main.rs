@@ -19,7 +19,7 @@ extern crate libudev;
 extern crate gudev;
 extern crate rustc_serialize;
 
-use gtk::prelude::*;
+use gio::prelude::*;
 
 use mgapplication::MgApplication;
 
@@ -63,7 +63,7 @@ fn main() {
         app.borrow_mut().start();
     });
 
-    gapp.run(0, &[]);
+    gapp.run(&[]);
 }
 
 #[test]

@@ -12,10 +12,15 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use gio;
+use gio::prelude::*;
 use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use gudev::{
+    ClientExt,
+    DeviceExt
+};
 
 use std;
 use std::path;
@@ -292,7 +297,7 @@ impl MgApplication {
                                              gtk::MessageType::Error,
                                              gtk::ButtonsType::Close,
                                              message);
-        dialog.set_secondary_text(Some(reason));
+        dialog.set_property_secondary_text(Some(reason));
         dialog.run();
         dialog.destroy();
     }
