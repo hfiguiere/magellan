@@ -314,9 +314,9 @@ impl MgApplication {
             let mut d = device.unwrap();
             if d.open() {
                 match d.erase() {
-                    drivers::Error::None =>
+                    Ok(_) =>
                         println!("success erasing"),
-                    e @ _ =>
+                    Err(e) =>
                         self.report_error(&format!("Failed to erase GPS data."), &e.to_string()),
                 }
             }

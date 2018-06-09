@@ -29,7 +29,6 @@ mod drivers;
 mod gpsbabel;
 mod utils;
 
-
 pub enum Format {
     None,
     Gpx,

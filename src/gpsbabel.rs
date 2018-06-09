@@ -21,7 +21,6 @@ use drivers::Error;
 use drivers::Driver;
 
 /// GpsBabel "driver". Will use gpsbabel to connect to device.
-#[derive(Clone)]
 pub struct GpsBabel {
     device_id: String,
     port: String,
@@ -119,18 +118,17 @@ impl Driver for GpsBabel {
             .expect("failed to execute process");
         println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
         let err_output = String::from_utf8_lossy(&output.stderr);
-        if output.status.success() {
-            Ok(dir)
-        } else {
-            Err(Error::Failed(err_output.into_owned()))
+        if !output.status.success() {
+            return Err(Error::Failed(err_output.into_owned()));
         }
+        Ok(dir)
     }
 
     /// Erase the logs on the device. Return an error if not capable.
-    fn erase(&self) -> Error {
+    fn erase(&self) -> Result<(), Error> {
         // Device doesn't support "erase only"
         if !self.cap.can_erase_only {
-            return Error::Unsupported
+            return Err(Error::Unsupported);
         }
         /* gpsbabel -t -w -i m241,erase_only -f /dev/ttyACM0 */
         let output = GpsBabel::build_basic_command_line(&self.device_id, &self.port, false, true)
@@ -138,11 +136,10 @@ impl Driver for GpsBabel {
             .expect("failed to execute process");
         println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
         let err_output = String::from_utf8_lossy(&output.stderr);
-        if output.status.success() {
-            Error::None
-        } else {
-            Error::Failed(err_output.into_owned())
+        if !output.status.success() {
+            return Err(Error::Failed(err_output.into_owned()));
         }
+        Ok(())
     }
 
 }
