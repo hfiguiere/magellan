@@ -14,7 +14,6 @@
 use gio;
 use gio::prelude::*;
 use glib;
-use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use gudev::{
@@ -23,6 +22,7 @@ use gudev::{
 };
 
 use std;
+use std::mem;
 use std::path;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -56,14 +56,14 @@ pub struct MgApplication {
     device_manager: devices::Manager,
     prefs_store: glib::KeyFile,
 
-    model_changed_signal: u64,
-    port_changed_signal: u64,
+    model_changed_signal: Option<glib::SignalHandlerId>,
+    port_changed_signal: Option<glib::SignalHandlerId>,
 
     output_dest_dir: path::PathBuf,
 
     event_loop: Rc<RefCell<Fn() -> Continue>>,
     event_queue: VecDeque<MgAction>,
-    event_queue_source_id: glib::SourceId,
+    event_queue_source_id: Option<glib::SourceId>,
 }
 
 impl MgApplication {
@@ -88,14 +88,14 @@ impl MgApplication {
             port_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
             device_manager: devices::Manager::new(),
             prefs_store: glib::KeyFile::new(),
-            model_changed_signal: 0,
-            port_changed_signal: 0,
+            model_changed_signal: None,
+            port_changed_signal: None,
             output_dest_dir: path::PathBuf::new(),
             event_loop: Rc::new(RefCell::new(move ||  -> Continue {
                 glib::Continue(false)
             })),
             event_queue: VecDeque::new(),
-            event_queue_source_id: glib::SourceId::from_glib(0),
+            event_queue_source_id: None,
         };
 
         let me = Rc::new(RefCell::new(app));
@@ -108,7 +108,7 @@ impl MgApplication {
                 }
                 let empty = app.event_queue.is_empty();
                 if empty {
-                   app.event_queue_source_id = glib::SourceId::from_glib(0);
+                   app.event_queue_source_id = None;
                 }
                 gtk::Continue(!empty)
             }));
@@ -116,11 +116,10 @@ impl MgApplication {
         {
             let me_too = me.clone();
             me.borrow_mut().win.connect_delete_event(move |_,_| {
-                // XXX ideally source_remove would take a reference
-                let source_id = me_too.borrow().event_queue_source_id.clone();
-                if source_id != glib::SourceId::from_glib(0) {
+                let source_id =
+                    mem::replace(&mut me_too.borrow_mut().event_queue_source_id, None);
+                if let Some(source_id) = source_id {
                     glib::source_remove(source_id);
-                    me_too.borrow_mut().event_queue_source_id = glib::SourceId::from_glib(0);
                 }
                 Inhibit(false)
             });
@@ -140,7 +139,7 @@ impl MgApplication {
                     me_too.borrow_mut().post_event(MgAction::ModelChanged(id));
                 }
             });
-            me.borrow_mut().model_changed_signal = signal_id;
+            me.borrow_mut().model_changed_signal = Some(signal_id);
         }
         {
             let me_too = me.clone();
@@ -149,7 +148,7 @@ impl MgApplication {
                     me_too.borrow_mut().post_event(MgAction::PortChanged(id));
                 }
             });
-            me.borrow_mut().port_changed_signal = signal_id;
+            me.borrow_mut().port_changed_signal = Some(signal_id);
         }
         {
             let me_too = me.clone();
@@ -194,11 +193,11 @@ impl MgApplication {
     fn post_event(&mut self, evt: MgAction) {
         self.event_queue.push_back(evt);
 
-        if self.event_queue_source_id == glib::SourceId::from_glib(0) {
+        if self.event_queue_source_id == None {
             // gtk::idle_add is the version that must be called from the main thread.
             let f = self.event_loop.clone();
             let sourceid = gtk::idle_add(move || { (f.borrow())() });
-            self.event_queue_source_id = sourceid;
+            self.event_queue_source_id = Some(sourceid);
         }
     }
 
@@ -293,7 +292,7 @@ impl MgApplication {
     }
 
     fn report_error(&self, message: &str, reason: &str) {
-        let dialog = gtk::MessageDialog::new(Some(&self.win), gtk::DIALOG_MODAL,
+        let dialog = gtk::MessageDialog::new(Some(&self.win), gtk::DialogFlags::MODAL,
                                              gtk::MessageType::Error,
                                              gtk::ButtonsType::Close,
                                              message);
@@ -354,7 +353,7 @@ impl MgApplication {
         }
         path.push("gpsami.ini");
 
-        match self.prefs_store.load_from_file(path, glib::KEY_FILE_NONE) {
+        match self.prefs_store.load_from_file(path, glib::KeyFileFlags::NONE) {
             Err(e) => {
                 println!("error with g_key_file {}", e);
                 Err(e)
@@ -403,13 +402,13 @@ impl MgApplication {
         // XXX this is a hack to not have the signal called as we'll end up
         // recursively borrow_mut self via the RefCell
         let model_too = model.clone();
-        utils::block_signal(&mut self.model_combo, self.model_changed_signal, |obj| {
+        utils::block_signal(&mut self.model_combo, self.model_changed_signal.as_ref().unwrap(), |obj| {
             obj.set_active_id(model_too.as_ref());
         });
         self.model_changed(&model);
 
         let port_too = port.clone();
-        utils::block_signal(&mut self.port_combo, self.port_changed_signal, |obj| {
+        utils::block_signal(&mut self.port_combo, self.port_changed_signal.as_ref().unwrap(), |obj| {
             obj.set_active_id(port_too.as_ref());
         });
         self.port_changed(&port);

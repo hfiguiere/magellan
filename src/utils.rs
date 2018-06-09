@@ -36,7 +36,7 @@ pub fn add_text_row(store: &gtk::ListStore,
 }
 
 /// Block a signal and run the function f.
-pub fn block_signal<T, F>(obj: &mut T, signal: u64, f: F)
+pub fn block_signal<T, F>(obj: &mut T, signal: &glib::SignalHandlerId, f: F)
     where T: glib::IsA<glib::Object>, F: Fn(&mut T) {
 
     glib::signal_handler_block(obj, signal);
