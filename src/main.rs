@@ -12,21 +12,21 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate gio;
-extern crate glib_sys;
 extern crate glib;
+extern crate glib_sys;
 extern crate gtk;
-extern crate libudev;
 extern crate gudev;
+extern crate libudev;
 extern crate rustc_serialize;
 
 use gio::prelude::*;
 
 use mgapplication::MgApplication;
 
-mod mgapplication;
 mod devices;
 mod drivers;
 mod gpsbabel;
+mod mgapplication;
 mod utils;
 
 pub enum Format {
@@ -50,11 +50,12 @@ fn init() {
 }
 
 fn main() {
-
     init();
 
-    let gapp = gtk::Application::new(Some("net.figuiere.gpsami"),
-                                         gio::ApplicationFlags::FLAGS_NONE).unwrap();
+    let gapp = gtk::Application::new(
+        Some("net.figuiere.gpsami"),
+        gio::ApplicationFlags::FLAGS_NONE,
+    ).unwrap();
 
     gapp.connect_activate(move |gapp| {
         let app = MgApplication::new(&gapp);
@@ -66,5 +67,4 @@ fn main() {
 }
 
 #[test]
-fn it_works() {
-}
+fn it_works() {}

@@ -16,23 +16,19 @@ use gio::prelude::*;
 use glib;
 use gtk;
 use gtk::prelude::*;
-use gudev::{
-    ClientExt,
-    DeviceExt
-};
+use gudev::{ClientExt, DeviceExt};
 
 use std;
+use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::mem;
 use std::path;
 use std::rc::Rc;
-use std::cell::RefCell;
-use std::collections::VecDeque;
 
 use devices;
 use drivers;
 use utils;
-use ::Format;
-
+use Format;
 
 enum MgAction {
     RescanDevices,
@@ -67,15 +63,14 @@ pub struct MgApplication {
 }
 
 impl MgApplication {
-
     pub fn new(gapp: &gtk::Application) -> Rc<RefCell<Self>> {
-
         let builder = gtk::Builder::new_from_string(include_str!("mgwindow.ui"));
         let window: gtk::ApplicationWindow = builder.get_object("main_window").unwrap();
         let erase_checkbtn: gtk::CheckButton = builder.get_object("erase_checkbtn").unwrap();
         let model_combo: gtk::ComboBox = builder.get_object("model_combo").unwrap();
         let port_combo: gtk::ComboBox = builder.get_object("port_combo").unwrap();
-        let output_dir_chooser: gtk::FileChooserButton = builder.get_object("output_dir_chooser").unwrap();
+        let output_dir_chooser: gtk::FileChooserButton =
+            builder.get_object("output_dir_chooser").unwrap();
 
         gapp.add_window(&window);
 
@@ -91,9 +86,7 @@ impl MgApplication {
             model_changed_signal: None,
             port_changed_signal: None,
             output_dest_dir: path::PathBuf::new(),
-            event_loop: Rc::new(RefCell::new(move ||  -> Continue {
-                glib::Continue(false)
-            })),
+            event_loop: Rc::new(RefCell::new(move || -> Continue { glib::Continue(false) })),
             event_queue: VecDeque::new(),
             event_queue_source_id: None,
         };
@@ -108,16 +101,15 @@ impl MgApplication {
                 }
                 let empty = app.event_queue.is_empty();
                 if empty {
-                   app.event_queue_source_id = None;
+                    app.event_queue_source_id = None;
                 }
                 gtk::Continue(!empty)
             }));
         }
         {
             let me_too = me.clone();
-            me.borrow_mut().win.connect_delete_event(move |_,_| {
-                let source_id =
-                    mem::replace(&mut me_too.borrow_mut().event_queue_source_id, None);
+            me.borrow_mut().win.connect_delete_event(move |_, _| {
+                let source_id = mem::replace(&mut me_too.borrow_mut().event_queue_source_id, None);
                 if let Some(source_id) = source_id {
                     glib::source_remove(source_id);
                 }
@@ -126,11 +118,14 @@ impl MgApplication {
         }
         {
             let me_too = me.clone();
-            me.borrow().device_manager.gudev_client.connect_uevent(move |_, action, device| {
-                let subsystem = device.get_subsystem().unwrap_or("".to_string());
-                println!("received event {} {}", action, subsystem);
-                me_too.borrow_mut().post_event(MgAction::RescanDevices)
-            });
+            me.borrow()
+                .device_manager
+                .gudev_client
+                .connect_uevent(move |_, action, device| {
+                    let subsystem = device.get_subsystem().unwrap_or("".to_string());
+                    println!("received event {} {}", action, subsystem);
+                    me_too.borrow_mut().post_event(MgAction::RescanDevices)
+                });
         }
         {
             let me_too = me.clone();
@@ -153,7 +148,7 @@ impl MgApplication {
         {
             let me_too = me.clone();
             let dload_action = gio::SimpleAction::new("download", None);
-            dload_action.connect_activate(move |_,_| {
+            dload_action.connect_activate(move |_, _| {
                 me_too.borrow_mut().post_event(MgAction::StartDownload);
             });
             dload_action.set_enabled(false);
@@ -163,7 +158,7 @@ impl MgApplication {
         {
             let me_too = me.clone();
             let erase_action = gio::SimpleAction::new("erase", None);
-            erase_action.connect_activate(move |_,_| {
+            erase_action.connect_activate(move |_, _| {
                 me_too.borrow_mut().post_event(MgAction::StartErase);
             });
             erase_action.set_enabled(false);
@@ -174,9 +169,7 @@ impl MgApplication {
             output_dir_chooser.connect_file_set(move |w| {
                 let file_name = w.get_filename();
                 match file_name {
-                    Some(f) => {
-                        me_too.borrow_mut().post_event(MgAction::SetOutputDir(f))
-                    },
+                    Some(f) => me_too.borrow_mut().post_event(MgAction::SetOutputDir(f)),
                     _ => {}
                 }
             });
@@ -186,7 +179,11 @@ impl MgApplication {
             println!("Error loading settings");
         }
         output_dir_chooser.set_current_folder(
-            me.borrow().prefs_store.get_string("output", "dir").unwrap_or("".to_owned()));
+            me.borrow()
+                .prefs_store
+                .get_string("output", "dir")
+                .unwrap_or("".to_owned()),
+        );
         me
     }
 
@@ -196,7 +193,7 @@ impl MgApplication {
         if self.event_queue_source_id == None {
             // gtk::idle_add is the version that must be called from the main thread.
             let f = self.event_loop.clone();
-            let sourceid = gtk::idle_add(move || { (f.borrow())() });
+            let sourceid = gtk::idle_add(move || (f.borrow())());
             self.event_queue_source_id = Some(sourceid);
         }
     }
@@ -209,27 +206,23 @@ impl MgApplication {
         match evt {
             MgAction::RescanDevices => {
                 self.rescan_devices();
-            },
+            }
             MgAction::ModelChanged(ref id) => {
                 self.model_changed(id);
-            },
-            MgAction::PortChanged(ref id) => {
-                self.port_changed(id)
-            },
+            }
+            MgAction::PortChanged(ref id) => self.port_changed(id),
             MgAction::StartErase => {
                 self.do_erase();
-            },
-            MgAction::DoneErase => {
-            },
+            }
+            MgAction::DoneErase => {}
             MgAction::StartDownload => {
                 self.do_download();
-            },
-            MgAction::DoneDownload => {
-            },
+            }
+            MgAction::DoneDownload => {}
             MgAction::SetOutputDir(f) => {
                 self.set_output_destination_dir(f.as_ref());
-                self.prefs_store.set_string("output", "dir",
-                                            f.to_str().unwrap());
+                self.prefs_store
+                    .set_string("output", "dir", f.to_str().unwrap());
                 if self.save_settings().is_err() {
                     println!("Error loading settings");
                 }
@@ -250,16 +243,20 @@ impl MgApplication {
             println!("nodriver");
         } else {
             let output_file: path::PathBuf;
-            let chooser = gtk::FileChooserDialog::new(Some("Save File"),
-                                                      Some(&self.win),
-                                                      gtk::FileChooserAction::Save);
+            let chooser = gtk::FileChooserDialog::new(
+                Some("Save File"),
+                Some(&self.win),
+                gtk::FileChooserAction::Save,
+            );
             chooser.add_buttons(&[
                 ("Save", gtk::ResponseType::Ok.into()),
                 ("Cancel", gtk::ResponseType::Cancel.into()),
-                ]);
-            chooser.set_current_folder(self.prefs_store
-                                       .get_string("output", "dir")
-                                       .unwrap_or("".to_owned()));
+            ]);
+            chooser.set_current_folder(
+                self.prefs_store
+                    .get_string("output", "dir")
+                    .unwrap_or("".to_owned()),
+            );
             if chooser.run() == gtk::ResponseType::Ok.into() {
                 let result = chooser.get_filename();
                 chooser.destroy();
@@ -277,25 +274,29 @@ impl MgApplication {
                     Ok(temp_output_filename) => {
                         println!("success {}", temp_output_filename.to_str().unwrap());
                         match std::fs::copy(temp_output_filename, &output_file) {
-                            Err(e) =>
-                                self.report_error(&format!("Failed to save {}",
-                                                           output_file.to_str().unwrap()),
-                                                  &e.to_string()),
+                            Err(e) => self.report_error(
+                                &format!("Failed to save {}", output_file.to_str().unwrap()),
+                                &e.to_string(),
+                            ),
                             _ => {}
                         }
-                    },
-                    Err(e) =>
-                        self.report_error(&format!("Failed to download GPS data."), &e.to_string()),
+                    }
+                    Err(e) => {
+                        self.report_error(&format!("Failed to download GPS data."), &e.to_string())
+                    }
                 }
             }
         }
     }
 
     fn report_error(&self, message: &str, reason: &str) {
-        let dialog = gtk::MessageDialog::new(Some(&self.win), gtk::DialogFlags::MODAL,
-                                             gtk::MessageType::Error,
-                                             gtk::ButtonsType::Close,
-                                             message);
+        let dialog = gtk::MessageDialog::new(
+            Some(&self.win),
+            gtk::DialogFlags::MODAL,
+            gtk::MessageType::Error,
+            gtk::ButtonsType::Close,
+            message,
+        );
         dialog.set_property_secondary_text(Some(reason));
         dialog.run();
         dialog.destroy();
@@ -314,10 +315,10 @@ impl MgApplication {
             let mut d = device.unwrap();
             if d.open() {
                 match d.erase() {
-                    Ok(_) =>
-                        println!("success erasing"),
-                    Err(e) =>
-                        self.report_error(&format!("Failed to erase GPS data."), &e.to_string()),
+                    Ok(_) => println!("success erasing"),
+                    Err(e) => {
+                        self.report_error(&format!("Failed to erase GPS data."), &e.to_string())
+                    }
                 }
             }
         }
@@ -344,29 +345,29 @@ impl MgApplication {
     pub fn load_settings(&mut self) -> Result<(), glib::Error> {
         let mut path = Self::settings_dir();
         match std::fs::create_dir_all(path.clone()) {
-            Err(e) =>
-                return Err(
-                    glib::Error::new(glib::FileError::Failed,
-                                     &format!("Can't create settings dir '{:?}': {}", path, e))),
-            Ok(_) => {
-            },
+            Err(e) => {
+                return Err(glib::Error::new(
+                    glib::FileError::Failed,
+                    &format!("Can't create settings dir '{:?}': {}", path, e),
+                ))
+            }
+            Ok(_) => {}
         }
         path.push("gpsami.ini");
 
-        match self.prefs_store.load_from_file(path, glib::KeyFileFlags::NONE) {
+        match self.prefs_store
+            .load_from_file(path, glib::KeyFileFlags::NONE)
+        {
             Err(e) => {
                 println!("error with g_key_file {}", e);
                 Err(e)
-            },
-            Ok(_) => {
-                Ok(())
-            },
+            }
+            Ok(_) => Ok(()),
         }
     }
 
     /// Start the app.
     pub fn start(&mut self) {
-
         utils::setup_text_combo(&self.model_combo, &self.model_store);
         utils::setup_text_combo(&self.port_combo, &self.port_store);
         self.populate_model_combo();
@@ -387,7 +388,6 @@ impl MgApplication {
     }
 
     fn populate_model_combo(&mut self) {
-
         self.model_store.clear();
         {
             let devices = self.device_manager.devices_desc();
@@ -396,21 +396,33 @@ impl MgApplication {
             }
         }
 
-        let model = self.prefs_store.get_string("device", "model").unwrap_or("".to_string());
-        let port = self.prefs_store.get_string("device", "port").unwrap_or("".to_string());
+        let model = self.prefs_store
+            .get_string("device", "model")
+            .unwrap_or("".to_string());
+        let port = self.prefs_store
+            .get_string("device", "port")
+            .unwrap_or("".to_string());
 
         // XXX this is a hack to not have the signal called as we'll end up
         // recursively borrow_mut self via the RefCell
         let model_too = model.clone();
-        utils::block_signal(&mut self.model_combo, self.model_changed_signal.as_ref().unwrap(), |obj| {
-            obj.set_active_id(model_too.as_ref());
-        });
+        utils::block_signal(
+            &mut self.model_combo,
+            self.model_changed_signal.as_ref().unwrap(),
+            |obj| {
+                obj.set_active_id(model_too.as_ref());
+            },
+        );
         self.model_changed(&model);
 
         let port_too = port.clone();
-        utils::block_signal(&mut self.port_combo, self.port_changed_signal.as_ref().unwrap(), |obj| {
-            obj.set_active_id(port_too.as_ref());
-        });
+        utils::block_signal(
+            &mut self.port_combo,
+            self.port_changed_signal.as_ref().unwrap(),
+            |obj| {
+                obj.set_active_id(port_too.as_ref());
+            },
+        );
         self.port_changed(&port);
     }
 
@@ -436,11 +448,10 @@ impl MgApplication {
         self.erase_checkbtn.set_sensitive(capability.can_erase);
         match self.win.lookup_action("erase") {
             Some(a) => match a.downcast::<gio::SimpleAction>() {
-                Ok(sa) =>
-                    sa.set_enabled(capability.can_erase_only),
-                _ => {},
+                Ok(sa) => sa.set_enabled(capability.can_erase_only),
+                _ => {}
             },
-            _ => {},
+            _ => {}
         }
     }
 
@@ -453,11 +464,10 @@ impl MgApplication {
         self.device_manager.set_port(id.to_string());
         match self.win.lookup_action("download") {
             Some(a) => match a.downcast::<gio::SimpleAction>() {
-                Ok(sa) =>
-                    sa.set_enabled(id != ""),
-                _ => {},
+                Ok(sa) => sa.set_enabled(id != ""),
+                _ => {}
             },
-            _ => {},
+            _ => {}
         }
     }
 }

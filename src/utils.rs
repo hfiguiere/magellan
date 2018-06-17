@@ -15,7 +15,6 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 
-
 /// Setup a gtk::ComboBox model to have id in column 1 and label in column 2
 /// All text.
 pub fn setup_text_combo(combo: &gtk::ComboBox, model: &gtk::ListStore) {
@@ -29,16 +28,16 @@ pub fn setup_text_combo(combo: &gtk::ComboBox, model: &gtk::ListStore) {
 }
 
 /// Add a row with two text column into the list store.
-pub fn add_text_row(store: &gtk::ListStore,
-                    col1: &str, col2: &str) -> gtk::TreeIter {
-    store.insert_with_values(None, &[0, 1],
-                             &[&String::from(col1), &String::from(col2)])
+pub fn add_text_row(store: &gtk::ListStore, col1: &str, col2: &str) -> gtk::TreeIter {
+    store.insert_with_values(None, &[0, 1], &[&String::from(col1), &String::from(col2)])
 }
 
 /// Block a signal and run the function f.
 pub fn block_signal<T, F>(obj: &mut T, signal: &glib::SignalHandlerId, f: F)
-    where T: glib::IsA<glib::Object>, F: Fn(&mut T) {
-
+where
+    T: glib::IsA<glib::Object>,
+    F: Fn(&mut T),
+{
     glib::signal_handler_block(obj, signal);
     f(obj);
     glib::signal_handler_unblock(obj, signal);

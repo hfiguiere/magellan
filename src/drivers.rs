@@ -14,7 +14,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use ::Format;
+use Format;
 
 #[derive(Debug)]
 pub struct Port {
@@ -27,7 +27,7 @@ pub struct Port {
 pub enum PortType {
     None,
     UsbSerial,
-    RfComm,     // Bluetooth Serial
+    RfComm, // Bluetooth Serial
 }
 
 #[derive(Clone, Debug, RustcDecodable)]
@@ -40,7 +40,7 @@ pub struct Desc {
 pub enum Error {
     Unsupported,
     WrongArg,
-    Failed(String)
+    Failed(String),
 }
 
 impl fmt::Display for Error {
@@ -48,7 +48,7 @@ impl fmt::Display for Error {
         match *self {
             Error::Unsupported => write!(f, "{}", "Unsupported"),
             Error::WrongArg => write!(f, "{}", "WrongArg"),
-            Error::Failed(ref s) => write!(f, "{}", s)
+            Error::Failed(ref s) => write!(f, "{}", s),
         }
     }
 }

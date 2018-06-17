@@ -11,8 +11,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use libudev;
 use gudev;
+use libudev;
 use rustc_serialize::json;
 
 use drivers;
@@ -57,9 +57,7 @@ pub struct Manager {
 
 impl Manager {
     pub fn new() -> Self {
-        let devices_db: DeviceDb = json::decode(
-            include_str!("devices.json")
-            ).unwrap();
+        let devices_db: DeviceDb = json::decode(include_str!("devices.json")).unwrap();
 
         let client = gudev::Client::new(&vec!["tty"]);
 
@@ -69,12 +67,13 @@ impl Manager {
         }
 
         let manager = Manager {
-            model: None, port: None,
+            model: None,
+            port: None,
             devices: devices_db.devices,
             drivers: devices_db.drivers,
             udev_context: context.unwrap(),
             gudev_client: client,
-            device_filter: None
+            device_filter: None,
         };
         manager
     }
@@ -104,10 +103,8 @@ impl Manager {
         }
         // XXX this is suboptimal.
         match self.devices.iter().find(|&device| device.id == *model) {
-            Some(device) =>
-                Some(device.cap.clone()),
-            None =>
-                None,
+            Some(device) => Some(device.cap.clone()),
+            None => None,
         }
     }
 
@@ -130,7 +127,7 @@ impl Manager {
                         println!("match_property(\"bus = usb\") failed");
                         return Vec::new();
                     }
-                },
+                }
                 drivers::PortType::RfComm => {
                     // it seems the only way is to use this filter.
                     if e.match_subsystem("tty").is_err() {
@@ -141,9 +138,8 @@ impl Manager {
                         println!("match_sysname(\"rfcomm\") failed");
                         return Vec::new();
                     }
-                },
-                _ => {
-                },
+                }
+                _ => {}
             }
 
             let devices = e.scan_devices();
@@ -151,43 +147,39 @@ impl Manager {
                 return Vec::new();
             }
             let ds = devices.unwrap();
-            let mut dv2: Vec<drivers::Port> = ds.map(
-                |dev|  {
-                    let path = dev.devnode().unwrap().to_path_buf();
-                    let id = dev.sysname().to_string_lossy().into_owned();
-                    let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
-                        Some(s) => s.to_string_lossy().into_owned(),
-                        None => String::from("(Unknown)")
-                    };
-                    drivers::Port { id: id, label: label, path: path }
-                }).collect();
+            let mut dv2: Vec<drivers::Port> = ds.map(|dev| {
+                let path = dev.devnode().unwrap().to_path_buf();
+                let id = dev.sysname().to_string_lossy().into_owned();
+                let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
+                    Some(s) => s.to_string_lossy().into_owned(),
+                    None => String::from("(Unknown)"),
+                };
+                drivers::Port {
+                    id: id,
+                    label: label,
+                    path: path,
+                }
+            }).collect();
             dv.append(&mut dv2);
         }
         return dv;
     }
 
     fn get_port_filter_for_model(&self, model: &str) -> Vec<drivers::PortType> {
-        let port_filter = match self.devices.iter().find(
-            |&device| {
-                &device.id == model
-            }) {
-            Some(device) => {
-                match self.drivers.iter().find(
-                    |&driver| {
-                        driver.id == device.driver
-                    }) {
-                    Some(driver) => driver.ports.clone(),
-                    _=> vec![drivers::PortType::None],
-                }
+        let port_filter = match self.devices.iter().find(|&device| &device.id == model) {
+            Some(device) => match self.drivers
+                .iter()
+                .find(|&driver| driver.id == device.driver)
+            {
+                Some(driver) => driver.ports.clone(),
+                _ => vec![drivers::PortType::None],
             },
-            None =>
-                vec![drivers::PortType::None]
+            None => vec![drivers::PortType::None],
         };
-        return port_filter
+        return port_filter;
     }
 
-    pub fn get_ports_for_model(&self, model: &str)
-                               -> Option<Vec<drivers::Port>> {
+    pub fn get_ports_for_model(&self, model: &str) -> Option<Vec<drivers::Port>> {
         let port_filter = self.get_port_filter_for_model(model);
         Some(self.list_ports(port_filter))
     }
@@ -198,58 +190,43 @@ impl Manager {
             return None;
         }
         let capability: Capability;
-        let driver_id = match self.devices.iter().find(
-            |&device| {
-                if let Some(ref model) = self.model {
-                    return &device.id == model;
-                }
-                false
-            }) {
+        let driver_id = match self.devices.iter().find(|&device| {
+            if let Some(ref model) = self.model {
+                return &device.id == model;
+            }
+            false
+        }) {
             Some(device) => {
                 capability = device.cap.clone();
                 device.driver.clone()
-            },
-            None =>
-                return None
+            }
+            None => return None,
         };
         match driver_id.as_str() {
-            "baroiq" |
-            "dg-100" | "dg-200" |
-            "navilink" |
-            "m241" |
-            "mtk" => {
-                match self.port {
-                    Some(ref p) =>
-                        Some(Box::new(gpsbabel::GpsBabel::new(driver_id,
-                                                              p, capability))),
-                    _ => None
-                }
+            "baroiq" | "dg-100" | "dg-200" | "navilink" | "m241" | "mtk" => match self.port {
+                Some(ref p) => Some(Box::new(gpsbabel::GpsBabel::new(driver_id, p, capability))),
+                _ => None,
             },
-            _ =>
-                None
+            _ => None,
         }
     }
 }
 
 impl Capability {
-
-//    pub fn new() -> Self {
-//        Capability {
-//            can_erase: false,
-//            can_erase_only: false,
-//            can_log_enable: false,
-//            can_shutoff: false,
-//        }
-//    }
+    //    pub fn new() -> Self {
+    //        Capability {
+    //            can_erase: false,
+    //            can_erase_only: false,
+    //            can_log_enable: false,
+    //            can_shutoff: false,
+    //        }
+    //    }
 }
-
 
 #[cfg(test)]
 #[test]
 fn test_database() {
     // This test that the database has a valid syntax....
-    let devices_db: DeviceDb = json::decode(
-        include_str!("devices.json")
-            ).unwrap();
+    let devices_db: DeviceDb = json::decode(include_str!("devices.json")).unwrap();
     assert!(!devices_db.devices.is_empty());
 }

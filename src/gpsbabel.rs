@@ -15,10 +15,10 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use ::Format;
 use devices::Capability;
-use drivers::Error;
 use drivers::Driver;
+use drivers::Error;
+use Format;
 
 /// GpsBabel "driver". Will use gpsbabel to connect to device.
 pub struct GpsBabel {
@@ -29,7 +29,11 @@ pub struct GpsBabel {
 
 impl GpsBabel {
     pub fn new(device: String, port: &str, capability: Capability) -> Self {
-        GpsBabel { device_id: device, port: port.to_owned(), cap: capability }
+        GpsBabel {
+            device_id: device,
+            port: port.to_owned(),
+            cap: capability,
+        }
     }
 
     /// Return a string associated with the format.
@@ -38,7 +42,7 @@ impl GpsBabel {
         match *format {
             Format::Gpx => Some("gpx"),
             Format::Kml => Some("kml"),
-            _ => None
+            _ => None,
         }
     }
 
@@ -48,14 +52,18 @@ impl GpsBabel {
         match *format {
             Format::Gpx => Some(".gpx"),
             Format::Kml => Some(".kml"),
-            _ => None
+            _ => None,
         }
     }
 
     /// Build the basic command line for the device on port, eventually for delete
     /// after download or erase only.
-    fn build_basic_command_line(device_id: &str, port: &str,
-                                erase: bool, erase_only: bool) -> Command {
+    fn build_basic_command_line(
+        device_id: &str,
+        port: &str,
+        erase: bool,
+        erase_only: bool,
+    ) -> Command {
         let mut device_string = String::from(device_id);
         if erase {
             device_string.push_str(",erase");
@@ -64,17 +72,19 @@ impl GpsBabel {
             device_string.push_str(",erase_only");
         }
         let mut command = Command::new("gpsbabel");
-        command.arg("-t")
+        command
+            .arg("-t")
             .arg("-w")
-            .arg("-i").arg(device_string)
-            .arg("-f").arg(port);
+            .arg("-i")
+            .arg(device_string)
+            .arg("-f")
+            .arg(port);
 
-        return command
+        return command;
     }
 }
 
 impl Driver for GpsBabel {
-
     fn open(&mut self) -> bool {
         !self.port.is_empty()
     }
@@ -85,11 +95,10 @@ impl Driver for GpsBabel {
 
     /// Download the data into a file. Return the PathBuf to said file on success.
     /// Caller is responsible for deleting the file.
-    fn download(&self, format: Format, erase: bool) -> Result<PathBuf, Error>
-    {
+    fn download(&self, format: Format, erase: bool) -> Result<PathBuf, Error> {
         // we requested erase at the same time and it is not supported.
         if erase && !self.cap.can_erase {
-            return Err(Error::Unsupported)
+            return Err(Error::Unsupported);
         }
 
         let fmt_string_opt = Self::format_to_string(&format);
@@ -141,14 +150,15 @@ impl Driver for GpsBabel {
         }
         Ok(())
     }
-
 }
 
 #[test]
 fn test_command_builder() {
     let command = GpsBabel::build_basic_command_line("foo", "ttyS0", false, false);
-    assert_eq!(format!("{:?}", command),
-               "\"gpsbabel\" \"-t\" \"-w\" \"-i\" \"foo\" \"-f\" \"ttyS0\"")
+    assert_eq!(
+        format!("{:?}", command),
+        "\"gpsbabel\" \"-t\" \"-w\" \"-i\" \"foo\" \"-f\" \"ttyS0\""
+    )
 }
 
 #[test]
