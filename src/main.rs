@@ -16,6 +16,8 @@ extern crate glib;
 extern crate glib_sys;
 extern crate gtk;
 extern crate gudev;
+#[macro_use]
+extern crate lazy_static;
 extern crate libudev;
 extern crate rustc_serialize;
 
@@ -23,6 +25,7 @@ use gio::prelude::*;
 
 use mgapplication::MgApplication;
 
+mod actionqueue;
 mod devices;
 mod drivers;
 mod gpsbabel;

@@ -12,6 +12,7 @@ glib = { version="0.5.0", features = ["v2_40"] }
 gio = { version="0.4.0", features = ["v2_40"] }
 gtk = { version="0.4.1", features = ["v3_12"] }
 rustc-serialize = "0.3"
+lazy_static = "1.0.1"
 libudev = "0.2.0"
 gudev = "0.4.0"
 
