@@ -45,6 +45,8 @@ fn init() {
     static START: Once = ONCE_INIT;
 
     START.call_once(|| {
+        glib::set_prgname(Some("gpsami"));
+
         // run initialization here
         if gtk::init().is_err() {
             panic!("Failed to initialize GTK.");
