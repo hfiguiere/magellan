@@ -5,16 +5,16 @@ authors = ["Hubert Figuière <hub@figuiere.net>"]
 license = "GPL-3"
 
 [dependencies]
-glib-sys = "0.6.0"
-gobject-sys = "0.6.0"
-gio-sys = "0.6.0"
-glib = { version="0.5.0", features = ["v2_40"] }
-gio = { version="0.4.0", features = ["v2_40"] }
-gtk = { version="0.4.1", features = ["v3_12"] }
+glib-sys = "^0.7.0"
+gobject-sys = "^0.7.0"
+gio-sys = "^0.7.0"
+glib = { version="^0.6.0", features = ["v2_40"] }
+gio = { version="^0.5.0", features = ["v2_40"] }
+gtk = { version="^0.5.0", features = ["v3_12"] }
 rustc-serialize = "0.3"
 lazy_static = "1.0.1"
 libudev = "0.2.0"
-gudev = "0.4.0"
+gudev = "^0.5.0"
 
 [[bin]]
 name = "gpsami"

@@ -141,11 +141,10 @@ impl MgApplication {
         );
 
         let ctx = glib::MainContext::default();
-        if ctx.is_some() {
-            let metoo = me.clone();
-            let source = ActionQueueSource::new(metoo);
-            source.attach(Some(ctx.as_ref().unwrap()));
-        }
+        let metoo = me.clone();
+        let source = ActionQueueSource::new(metoo);
+        source.attach(Some(&ctx));
+
         me
     }
 
