@@ -2,7 +2,7 @@ gpsami
 ======
 
 gpsami is a small GUI application to download data from a GPS loggers
-and save it as GPX or KML.
+and save it as GPX.
 
 It is written in Rust and uses Gtk3 for the UI and gpsbabel for the download part.
 
