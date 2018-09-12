@@ -14,13 +14,24 @@ See doc/devices.md for information about device support.
 To build
 --------
 
-Once you have Rust installed, just do:
+You need meson and Rust to build.
+
+To configure the (release) build do:
 
 ````
-$ cargo build
+$ meson build
 ````
 
-You can also use configure and generate release builds for it.
+If you want to build a development version, do:
+````
+$ meson -Dprofile=development build
+````
+
+To build
+
+````
+$ ninja -C build
+````
 
 License
 -------
