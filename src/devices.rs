@@ -59,14 +59,14 @@ impl Manager {
     pub fn new() -> Self {
         let devices_db: DeviceDb = json::decode(include_str!("devices.json")).unwrap();
 
-        let client = gudev::Client::new(&vec!["tty"]);
+        let client = gudev::Client::new(&["tty"]);
 
         let context = libudev::Context::new();
         if context.is_err() {
             // XXX not sure how do handle the error.
         }
 
-        let manager = Manager {
+        Manager {
             model: None,
             port: None,
             devices: devices_db.devices,
@@ -74,8 +74,7 @@ impl Manager {
             udev_context: context.unwrap(),
             gudev_client: client,
             device_filter: None,
-        };
-        manager
+        }
     }
 
     fn listen_for_devices(&mut self, port_type: Vec<drivers::PortType>) {
@@ -83,21 +82,21 @@ impl Manager {
         self.device_filter = Some(port_type);
     }
 
-    pub fn set_model(&mut self, model: String) {
+    pub fn set_model(&mut self, model: &str) {
         let port_filter = self.get_port_filter_for_model(&model);
-        self.model = Some(model);
+        self.model = Some(model.to_owned());
         self.listen_for_devices(port_filter);
     }
 
-    pub fn set_port(&mut self, port: String) {
-        self.port = Some(port);
+    pub fn set_port(&mut self, port: &str) {
+        self.port = Some(port.to_owned());
     }
 
     pub fn devices_desc(&self) -> &Vec<Desc> {
         &self.devices
     }
 
-    pub fn device_capability(&self, model: &String) -> Option<Capability> {
+    pub fn device_capability(&self, model: &str) -> Option<Capability> {
         if model.is_empty() {
             return None;
         }
@@ -155,18 +154,19 @@ impl Manager {
                     None => String::from("(Unknown)"),
                 };
                 drivers::Port {
-                    id: id,
-                    label: label,
-                    path: path,
+                    id,
+                    label,
+                    path,
                 }
             }).collect();
             dv.append(&mut dv2);
         }
-        return dv;
+
+        dv
     }
 
     fn get_port_filter_for_model(&self, model: &str) -> Vec<drivers::PortType> {
-        let port_filter = match self.devices.iter().find(|&device| &device.id == model) {
+        match self.devices.iter().find(|&device| device.id == model) {
             Some(device) => match self.drivers
                 .iter()
                 .find(|&driver| driver.id == device.driver)
@@ -175,8 +175,7 @@ impl Manager {
                 _ => vec![drivers::PortType::None],
             },
             None => vec![drivers::PortType::None],
-        };
-        return port_filter;
+        }
     }
 
     pub fn get_ports_for_model(&self, model: &str) -> Option<Vec<drivers::Port>> {

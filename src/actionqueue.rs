@@ -52,7 +52,7 @@ lazy_static! {
 }
 
 impl ActionQueueSource {
-    pub fn new(app: Rc<RefCell<MgApplication>>) -> glib::Source {
+    pub fn new_source(app: Rc<RefCell<MgApplication>>) -> glib::Source {
         unsafe {
             let source = glib_ffi::g_source_new(
                 translate::mut_override(&SOURCE_FUNCS),
@@ -77,7 +77,7 @@ unsafe extern "C" fn prepare(
             return glib_ffi::GTRUE;
         }
     }
-    return glib_ffi::GFALSE;
+    glib_ffi::GFALSE
 }
 
 unsafe extern "C" fn check(_source: *mut glib_ffi::GSource) -> glib_ffi::gboolean {
@@ -86,7 +86,7 @@ unsafe extern "C" fn check(_source: *mut glib_ffi::GSource) -> glib_ffi::gboolea
             return glib_ffi::GTRUE;
         }
     }
-    return glib_ffi::GFALSE;
+    glib_ffi::GFALSE
 }
 
 unsafe extern "C" fn dispatch(

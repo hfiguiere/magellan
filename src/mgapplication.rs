@@ -66,10 +66,10 @@ impl MgApplication {
 
         let app = MgApplication {
             win: window,
-            erase_checkbtn: erase_checkbtn,
-            model_combo: model_combo,
+            erase_checkbtn,
+            model_combo,
             model_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
-            port_combo: port_combo,
+            port_combo,
             port_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
             device_manager: devices::Manager::new(),
             prefs_store: glib::KeyFile::new(),
@@ -83,7 +83,7 @@ impl MgApplication {
             .device_manager
             .gudev_client
             .connect_uevent(move |_, action, device| {
-                let subsystem = device.get_subsystem().unwrap_or("".to_string());
+                let subsystem = device.get_subsystem().unwrap_or_default();
                 println!("received event {} {}", action, subsystem);
                 post_event(MgAction::RescanDevices)
             });
@@ -123,9 +123,8 @@ impl MgApplication {
         {
             output_dir_chooser.connect_file_set(move |w| {
                 let file_name = w.get_filename();
-                match file_name {
-                    Some(f) => post_event(MgAction::SetOutputDir(f)),
-                    _ => {}
+                if let Some(f) = file_name {
+                    post_event(MgAction::SetOutputDir(f));
                 }
             });
         }
@@ -137,12 +136,12 @@ impl MgApplication {
             me.borrow()
                 .prefs_store
                 .get_string("output", "dir")
-                .unwrap_or("".to_owned()),
+                .unwrap_or_default(),
         );
 
         let ctx = glib::MainContext::default();
         let metoo = me.clone();
-        let source = ActionQueueSource::new(metoo);
+        let source = ActionQueueSource::new_source(metoo);
         source.attach(Some(&ctx));
 
         me
@@ -173,14 +172,15 @@ impl MgApplication {
             chooser.set_current_folder(
                 self.prefs_store
                     .get_string("output", "dir")
-                    .unwrap_or("".to_owned()),
+                    .unwrap_or_default(),
             );
             if chooser.run() == gtk::ResponseType::Ok.into() {
                 let result = chooser.get_filename();
                 chooser.destroy();
-                match result {
-                    Some(f) => output_file = f,
-                    _ => return,
+                if let Some(f) = result {
+                    output_file = f;
+                } else {
+                    return;
                 }
             } else {
                 chooser.destroy();
@@ -191,16 +191,15 @@ impl MgApplication {
                 match d.download(Format::Gpx, false) {
                     Ok(temp_output_filename) => {
                         println!("success {}", temp_output_filename.to_str().unwrap());
-                        match std::fs::copy(temp_output_filename, &output_file) {
-                            Err(e) => self.report_error(
+                        if let Err(e) = std::fs::copy(temp_output_filename, &output_file) {
+                            self.report_error(
                                 &format!("Failed to save {}", output_file.to_str().unwrap()),
                                 &e.to_string(),
-                            ),
-                            _ => {}
+                                );
                         }
                     }
                     Err(e) => {
-                        self.report_error(&format!("Failed to download GPS data."), &e.to_string())
+                        self.report_error("Failed to download GPS data.", &e.to_string())
                     }
                 }
             }
@@ -235,7 +234,7 @@ impl MgApplication {
                 match d.erase() {
                     Ok(_) => println!("success erasing"),
                     Err(e) => {
-                        self.report_error(&format!("Failed to erase GPS data."), &e.to_string())
+                        self.report_error("Failed to erase GPS data", &e.to_string());
                     }
                 }
             }
@@ -262,25 +261,19 @@ impl MgApplication {
 
     pub fn load_settings(&mut self) -> Result<(), glib::Error> {
         let mut path = Self::settings_dir();
-        match std::fs::create_dir_all(path.clone()) {
-            Err(e) => {
-                return Err(glib::Error::new(
-                    glib::FileError::Failed,
-                    &format!("Can't create settings dir '{:?}': {}", path, e),
-                ))
-            }
-            Ok(_) => {}
+        if let Err(e) = std::fs::create_dir_all(path.clone()) {
+            return Err(glib::Error::new(
+                glib::FileError::Failed,
+                &format!("Can't create settings dir '{:?}': {}", path, e),
+                ));
         }
         path.push("gpsami.ini");
 
-        match self.prefs_store
-            .load_from_file(path, glib::KeyFileFlags::NONE)
-        {
-            Err(e) => {
-                println!("error with g_key_file {}", e);
-                Err(e)
-            }
-            Ok(_) => Ok(()),
+        if let Err(e) = self.prefs_store.load_from_file(path, glib::KeyFileFlags::NONE) {
+            println!("error with g_key_file {}", e);
+            Err(e)
+        } else {
+            Ok(())
         }
     }
 
@@ -297,7 +290,7 @@ impl MgApplication {
         self.populate_model_combo();
     }
 
-    fn populate_port_combo(&mut self, ports: &Vec<drivers::Port>) {
+    fn populate_port_combo(&mut self, ports: &[drivers::Port]) {
         self.port_store.clear();
         for port in ports {
             println!("adding port {:?}", port);
@@ -316,10 +309,10 @@ impl MgApplication {
 
         let model = self.prefs_store
             .get_string("device", "model")
-            .unwrap_or("".to_string());
+            .unwrap_or_default();
         let port = self.prefs_store
             .get_string("device", "port")
-            .unwrap_or("".to_string());
+            .unwrap_or_default();
 
         // XXX this is a hack to not have the signal called as we'll end up
         // recursively borrow_mut self via the RefCell
@@ -344,7 +337,7 @@ impl MgApplication {
         self.port_changed(&port);
     }
 
-    fn model_changed(&mut self, id: &String) {
+    fn model_changed(&mut self, id: &str) {
         println!("model changed to {}", id);
         self.prefs_store.set_string("device", "model", &id);
         if self.save_settings().is_err() {
@@ -354,9 +347,9 @@ impl MgApplication {
         let cap = self.device_manager.device_capability(id);
         if cap.is_some() {
             self.update_device_capability(&cap.unwrap());
-            self.device_manager.set_model(id.clone());
+            self.device_manager.set_model(id);
             let ports = self.device_manager.get_ports_for_model(id);
-            self.populate_port_combo(&ports.unwrap_or(Vec::new()));
+            self.populate_port_combo(&ports.unwrap_or_default());
         } else {
             // XXX clear device.
         }
@@ -364,12 +357,10 @@ impl MgApplication {
 
     fn update_device_capability(&self, capability: &devices::Capability) {
         self.erase_checkbtn.set_sensitive(capability.can_erase);
-        match self.win.lookup_action("erase") {
-            Some(a) => match a.downcast::<gio::SimpleAction>() {
-                Ok(sa) => sa.set_enabled(capability.can_erase_only),
-                _ => {}
-            },
-            _ => {}
+        if let Some(a) = self.win.lookup_action("erase") {
+            if let Ok(sa) = a.downcast::<gio::SimpleAction>() {
+                sa.set_enabled(capability.can_erase_only);
+            }
         }
     }
 
@@ -379,13 +370,11 @@ impl MgApplication {
             println!("Error loading settings");
         }
 
-        self.device_manager.set_port(id.to_string());
-        match self.win.lookup_action("download") {
-            Some(a) => match a.downcast::<gio::SimpleAction>() {
-                Ok(sa) => sa.set_enabled(id != ""),
-                _ => {}
-            },
-            _ => {}
+        self.device_manager.set_port(id);
+        if let Some(a) = self.win.lookup_action("download") {
+            if let Ok(sa) = a.downcast::<gio::SimpleAction>() {
+                sa.set_enabled(id != "");
+            }
         }
     }
 

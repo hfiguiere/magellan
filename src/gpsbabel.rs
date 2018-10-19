@@ -80,7 +80,7 @@ impl GpsBabel {
             .arg("-f")
             .arg(port);
 
-        return command;
+        command
     }
 }
 

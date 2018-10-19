@@ -46,8 +46,8 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::Unsupported => write!(f, "{}", "Unsupported"),
-            Error::WrongArg => write!(f, "{}", "WrongArg"),
+            Error::Unsupported => write!(f, "Unsupported"),
+            Error::WrongArg => write!(f, "WrongArg"),
             Error::Failed(ref s) => write!(f, "{}", s),
         }
     }
