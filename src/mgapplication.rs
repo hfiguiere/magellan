@@ -17,6 +17,7 @@ use glib;
 use gtk;
 use gtk::prelude::*;
 use gudev::{ClientExt, DeviceExt};
+use dirs;
 
 use std;
 use std::cell::RefCell;
@@ -244,7 +245,7 @@ impl MgApplication {
     fn settings_dir() -> path::PathBuf {
         // XXX replace this by glib stuff when we can.
         // Also we treat a failure of this as fatal.
-        let mut path: path::PathBuf = std::env::home_dir().unwrap();
+        let mut path: path::PathBuf = dirs::home_dir().unwrap();
         path.push(".gpsami");
         path
     }

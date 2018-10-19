@@ -15,6 +15,7 @@ rustc-serialize = "0.3"
 lazy_static = "1.0.1"
 libudev = "0.2.0"
 gudev = "^0.5.0"
+dirs = "^1.0.4"
 
 [[bin]]
 name = "gpsami"

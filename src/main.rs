@@ -20,6 +20,7 @@ extern crate gudev;
 extern crate lazy_static;
 extern crate libudev;
 extern crate rustc_serialize;
+extern crate dirs;
 
 use gio::prelude::*;
 
