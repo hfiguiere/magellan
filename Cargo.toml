@@ -8,8 +8,8 @@ license = "GPL-3"
 glib-sys = "^0.7.0"
 gobject-sys = "^0.7.0"
 gio-sys = "^0.7.0"
-glib = { version="^0.6.0", features = ["v2_40"] }
-gio = { version="^0.5.0", features = ["v2_40"] }
+glib = { version="^0.6.1", features = ["v2_40"] }
+gio = { version="^0.5.1", features = ["v2_40"] }
 gtk = { version="^0.5.0", features = ["v3_12"] }
 rustc-serialize = "0.3"
 lazy_static = "1.0.1"
