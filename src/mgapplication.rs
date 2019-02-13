@@ -315,28 +315,9 @@ impl MgApplication {
             .get_string("device", "port")
             .unwrap_or_default();
 
-        // XXX this is a hack to not have the signal called as we'll end up
-        // recursively borrow_mut self via the RefCell
-        let model_too = model.clone();
-        utils::block_signal(
-            &mut self.model_combo,
-            self.model_changed_signal.as_ref().unwrap(),
-            |obj| {
-                obj.set_active_id(model_too.as_ref());
-            },
-        );
-        self.model_changed(&model);
-
-        let port_too = port.clone();
-        utils::block_signal(
-            &mut self.port_combo,
-            self.port_changed_signal.as_ref().unwrap(),
-            |obj| {
-                obj.set_active_id(port_too.as_ref());
-            },
-        );
-        self.port_changed(&port);
-    }
+        self.model_combo.set_active_id(model.as_ref());
+        self.port_combo.set_active_id(port.as_ref());
+   }
 
     fn model_changed(&mut self, id: &str) {
         println!("model changed to {}", id);
