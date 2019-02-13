@@ -37,7 +37,7 @@ fn post_event(action: MgAction) {
 }
 
 pub struct MgApplication {
-    win: gtk::ApplicationWindow,
+    window: gtk::ApplicationWindow,
     erase_checkbtn: gtk::CheckButton,
     model_combo: gtk::ComboBox,
     model_store: gtk::ListStore,
@@ -46,9 +46,6 @@ pub struct MgApplication {
 
     device_manager: devices::Manager,
     prefs_store: glib::KeyFile,
-
-    model_changed_signal: Option<glib::SignalHandlerId>,
-    port_changed_signal: Option<glib::SignalHandlerId>,
 
     output_dest_dir: path::PathBuf,
 }
@@ -65,71 +62,58 @@ impl MgApplication {
 
         gapp.add_window(&window);
 
-        let app = MgApplication {
-            win: window,
-            erase_checkbtn,
-            model_combo,
-            model_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
-            port_combo,
-            port_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
-            device_manager: devices::Manager::new(),
-            prefs_store: glib::KeyFile::new(),
-            model_changed_signal: None,
-            port_changed_signal: None,
-            output_dest_dir: path::PathBuf::new(),
-        };
+        model_combo.connect_changed(move |combo| {
+            if let Some(id) = combo.get_active_id() {
+                post_event(MgAction::ModelChanged(id));
+            }
+        });
+        port_combo.connect_changed(move |entry| {
+            if let Some(id) = entry.get_active_id() {
+                post_event(MgAction::PortChanged(id));
+            }
+        });
+        let dload_action = gio::SimpleAction::new("download", None);
+        dload_action.connect_activate(move |_, _| {
+            post_event(MgAction::StartDownload);
+        });
+        dload_action.set_enabled(false);
+        window.add_action(&dload_action);
 
-        let me = Rc::new(RefCell::new(app));
-        me.borrow()
-            .device_manager
-            .gudev_client
+        let erase_action = gio::SimpleAction::new("erase", None);
+        erase_action.connect_activate(move |_, _| {
+            post_event(MgAction::StartErase);
+        });
+        erase_action.set_enabled(false);
+        window.add_action(&erase_action);
+
+        output_dir_chooser.connect_file_set(move |w| {
+            let file_name = w.get_filename();
+            if let Some(f) = file_name {
+                post_event(MgAction::SetOutputDir(f));
+            }
+        });
+
+        let device_manager = devices::Manager::new();
+        device_manager.gudev_client
             .connect_uevent(move |_, action, device| {
                 let subsystem = device.get_subsystem().unwrap_or_default();
                 println!("received event {} {}", action, subsystem);
                 post_event(MgAction::RescanDevices)
             });
-        {
-            let signal_id = me.borrow_mut().model_combo.connect_changed(move |combo| {
-                if let Some(id) = combo.get_active_id() {
-                    post_event(MgAction::ModelChanged(id));
-                }
-            });
-            me.borrow_mut().model_changed_signal = Some(signal_id);
-        }
-        {
-            let signal_id = me.borrow_mut().port_combo.connect_changed(move |entry| {
-                if let Some(id) = entry.get_active_id() {
-                    post_event(MgAction::PortChanged(id));
-                }
-            });
-            me.borrow_mut().port_changed_signal = Some(signal_id);
-        }
-        {
-            let dload_action = gio::SimpleAction::new("download", None);
-            dload_action.connect_activate(move |_, _| {
-                post_event(MgAction::StartDownload);
-            });
-            dload_action.set_enabled(false);
-            me.borrow_mut().win.add_action(&dload_action);
-        }
 
-        {
-            let erase_action = gio::SimpleAction::new("erase", None);
-            erase_action.connect_activate(move |_, _| {
-                post_event(MgAction::StartErase);
-            });
-            erase_action.set_enabled(false);
-            me.borrow_mut().win.add_action(&erase_action);
-        }
-        {
-            output_dir_chooser.connect_file_set(move |w| {
-                let file_name = w.get_filename();
-                if let Some(f) = file_name {
-                    post_event(MgAction::SetOutputDir(f));
-                }
-            });
-        }
+        let app = MgApplication {
+            window,
+            erase_checkbtn,
+            model_combo,
+            model_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
+            port_combo,
+            port_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
+            device_manager,
+            prefs_store: glib::KeyFile::new(),
+            output_dest_dir: path::PathBuf::new(),
+        };
 
+        let me = Rc::new(RefCell::new(app));
         if me.borrow_mut().load_settings().is_err() {
             println!("Error loading settings");
         }
@@ -163,7 +147,7 @@ impl MgApplication {
             let output_file: path::PathBuf;
             let chooser = gtk::FileChooserDialog::new(
                 Some("Save File"),
-                Some(&self.win),
+                Some(&self.window),
                 gtk::FileChooserAction::Save,
             );
             chooser.add_buttons(&[
@@ -209,7 +193,7 @@ impl MgApplication {
 
     fn report_error(&self, message: &str, reason: &str) {
         let dialog = gtk::MessageDialog::new(
-            Some(&self.win),
+            Some(&self.window),
             gtk::DialogFlags::MODAL,
             gtk::MessageType::Error,
             gtk::ButtonsType::Close,
@@ -283,7 +267,7 @@ impl MgApplication {
         utils::setup_text_combo(&self.model_combo, &self.model_store);
         utils::setup_text_combo(&self.port_combo, &self.port_store);
         self.populate_model_combo();
-        self.win.show_all();
+        self.window.show_all();
     }
 
     /// Rescan devices. On start and when new device is connected.
@@ -339,7 +323,7 @@ impl MgApplication {
 
     fn update_device_capability(&self, capability: &devices::Capability) {
         self.erase_checkbtn.set_sensitive(capability.can_erase);
-        if let Some(a) = self.win.lookup_action("erase") {
+        if let Some(a) = self.window.lookup_action("erase") {
             if let Ok(sa) = a.downcast::<gio::SimpleAction>() {
                 sa.set_enabled(capability.can_erase_only);
             }
@@ -353,7 +337,7 @@ impl MgApplication {
         }
 
         self.device_manager.set_port(id);
-        if let Some(a) = self.win.lookup_action("download") {
+        if let Some(a) = self.window.lookup_action("download") {
             if let Ok(sa) = a.downcast::<gio::SimpleAction>() {
                 sa.set_enabled(id != "");
             }
