@@ -11,6 +11,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::sync::Arc;
+
 use gudev;
 use libudev;
 use rustc_serialize::json;
@@ -184,7 +186,7 @@ impl Manager {
     }
 
     // Get a driver for the device from the current manager.
-    pub fn get_device(&self) -> Option<Box<drivers::Driver>> {
+    pub fn get_device(&self) -> Option<Arc<drivers::Driver + Send + Sync>> {
         if self.model == None {
             return None;
         }
@@ -203,7 +205,7 @@ impl Manager {
         };
         match driver_id.as_str() {
             "baroiq" | "dg-100" | "dg-200" | "navilink" | "m241" | "mtk" => match self.port {
-                Some(ref p) => Some(Box::new(gpsbabel::GpsBabel::new(driver_id, p, capability))),
+                Some(ref p) => Some(Arc::new(gpsbabel::GpsBabel::new(driver_id, p, capability))),
                 _ => None,
             },
             _ => None,

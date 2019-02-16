@@ -23,12 +23,19 @@ use std;
 use std::cell::RefCell;
 use std::path;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::thread;
 
 use actionqueue::{ActionQueueSource, MgAction, QUEUE};
 use devices;
 use drivers;
 use utils;
 use Format;
+
+enum UIState {
+    Idle,
+    InProgress,
+}
 
 fn post_event(action: MgAction) {
     if let Ok(ref mut q) = QUEUE.lock() {
@@ -38,6 +45,7 @@ fn post_event(action: MgAction) {
 
 pub struct MgApplication {
     window: gtk::ApplicationWindow,
+    content_box: gtk::Box,
     erase_checkbtn: gtk::CheckButton,
     model_combo: gtk::ComboBox,
     model_store: gtk::ListStore,
@@ -54,6 +62,7 @@ impl MgApplication {
     pub fn new(gapp: &gtk::Application) -> Rc<RefCell<Self>> {
         let builder = gtk::Builder::new_from_string(include_str!("mgwindow.ui"));
         let window: gtk::ApplicationWindow = builder.get_object("main_window").unwrap();
+        let content_box = builder.get_object::<gtk::Box>("content_box").unwrap();
         let erase_checkbtn: gtk::CheckButton = builder.get_object("erase_checkbtn").unwrap();
         let model_combo: gtk::ComboBox = builder.get_object("model_combo").unwrap();
         let port_combo: gtk::ComboBox = builder.get_object("port_combo").unwrap();
@@ -103,6 +112,7 @@ impl MgApplication {
 
         let app = MgApplication {
             window,
+            content_box,
             erase_checkbtn,
             model_combo,
             model_store: gtk::ListStore::new(&[gtk::Type::String, gtk::Type::String]),
@@ -133,62 +143,61 @@ impl MgApplication {
     }
 
     fn do_download(&mut self) {
-        // we wrap into this because we have early returns
-        // and want to ensure the event is posted.
-        self.really_do_download();
-        post_event(MgAction::DoneDownload);
-    }
-
-    fn really_do_download(&self) {
         let device = self.device_manager.get_device();
         if device.is_none() {
             println!("nodriver");
-        } else {
-            let output_file: path::PathBuf;
-            let chooser = gtk::FileChooserDialog::new(
-                Some("Save File"),
-                Some(&self.window),
-                gtk::FileChooserAction::Save,
+            post_event(MgAction::DoneDownload(drivers::Error::NoDriver));
+            return;
+        }
+        let output_file: path::PathBuf;
+        let chooser = gtk::FileChooserDialog::new(
+            Some("Save File"),
+            Some(&self.window),
+            gtk::FileChooserAction::Save,
             );
-            chooser.add_buttons(&[
-                ("Save", gtk::ResponseType::Ok.into()),
-                ("Cancel", gtk::ResponseType::Cancel.into()),
+        chooser.add_buttons(&[
+            ("Save", gtk::ResponseType::Ok.into()),
+            ("Cancel", gtk::ResponseType::Cancel.into()),
             ]);
-            chooser.set_current_folder(
-                self.prefs_store
-                    .get_string("output", "dir")
-                    .unwrap_or_default(),
+        chooser.set_current_folder(
+            self.prefs_store
+                .get_string("output", "dir")
+                .unwrap_or_default(),
             );
-            if chooser.run() == gtk::ResponseType::Ok.into() {
-                let result = chooser.get_filename();
-                chooser.destroy();
-                if let Some(f) = result {
-                    output_file = f;
-                } else {
-                    return;
-                }
+        if chooser.run() == gtk::ResponseType::Ok.into() {
+            let result = chooser.get_filename();
+            chooser.destroy();
+            if let Some(f) = result {
+                output_file = f;
             } else {
-                chooser.destroy();
+                post_event(MgAction::DoneDownload(drivers::Error::Cancelled));
                 return;
             }
-            let mut d = device.unwrap();
-            if d.open() {
+        } else {
+            chooser.destroy();
+            post_event(MgAction::DoneDownload(drivers::Error::Cancelled));
+            return;
+        }
+        let mut d = device.unwrap();
+        thread::spawn(move || {
+            post_event(if Arc::get_mut(&mut d).unwrap().open() {
                 match d.download(Format::Gpx, false) {
                     Ok(temp_output_filename) => {
                         println!("success {}", temp_output_filename.to_str().unwrap());
                         if let Err(e) = std::fs::copy(temp_output_filename, &output_file) {
-                            self.report_error(
-                                &format!("Failed to save {}", output_file.to_str().unwrap()),
-                                &e.to_string(),
-                                );
+                            MgAction::DoneDownload(drivers::Error::IOError(e))
+                        } else {
+                            MgAction::DoneDownload(drivers::Error::Success)
                         }
-                    }
+                    },
                     Err(e) => {
-                        self.report_error("Failed to download GPS data.", &e.to_string())
+                        MgAction::DoneDownload(e)
                     }
                 }
-            }
-        }
+            } else {
+                MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
+            });
+        });
     }
 
     fn report_error(&self, message: &str, reason: &str) {
@@ -204,26 +213,29 @@ impl MgApplication {
         dialog.destroy();
     }
 
-    fn do_erase(&mut self) {
-        self.real_do_erase();
-        post_event(MgAction::DoneErase);
-    }
-
-    fn real_do_erase(&self) {
+    fn do_erase(&self) {
         let device = self.device_manager.get_device();
         if device.is_none() {
             println!("nodriver");
-        } else {
-            let mut d = device.unwrap();
-            if d.open() {
+            post_event(MgAction::DoneErase(drivers::Error::NoDriver));
+            return;
+        }
+        let mut d = device.unwrap();
+        thread::spawn(move || {
+            post_event(if Arc::get_mut(&mut d).unwrap().open() {
                 match d.erase() {
-                    Ok(_) => println!("success erasing"),
+                    Ok(_) => {
+                        println!("success erasing");
+                        MgAction::DoneErase(drivers::Error::Success)
+                    }
                     Err(e) => {
-                        self.report_error("Failed to erase GPS data", &e.to_string());
+                        MgAction::DoneErase(e)
                     }
                 }
-            }
-        }
+            } else {
+                MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
+            });
+        });
     }
 
     fn settings_dir() -> path::PathBuf {
@@ -344,6 +356,17 @@ impl MgApplication {
         }
     }
 
+    fn set_state(&mut self, state: UIState) {
+        match state {
+            UIState::Idle => {
+                self.content_box.set_sensitive(true);
+            },
+            UIState::InProgress => {
+                self.content_box.set_sensitive(false);
+            },
+        }
+    }
+
     pub fn process_event(&mut self, evt: MgAction) {
         match evt {
             MgAction::RescanDevices => {
@@ -354,13 +377,31 @@ impl MgApplication {
             }
             MgAction::PortChanged(ref id) => self.port_changed(id),
             MgAction::StartErase => {
+                self.set_state(UIState::InProgress);
                 self.do_erase();
             }
-            MgAction::DoneErase => {}
+            MgAction::DoneErase(e) => {
+                match e {
+                    drivers::Error::Success |
+                    drivers::Error::Cancelled => {},
+                    _ =>
+                        self.report_error("Error erasing GPS data.", &e.to_string()),
+                }
+                self.set_state(UIState::Idle);
+            }
             MgAction::StartDownload => {
+                self.set_state(UIState::InProgress);
                 self.do_download();
             }
-            MgAction::DoneDownload => {}
+            MgAction::DoneDownload(e) => {
+                match e {
+                    drivers::Error::Success |
+                    drivers::Error::Cancelled => {},
+                    _ =>
+                        self.report_error("Error downloading GPS data.", &e.to_string()),
+                }
+                self.set_state(UIState::Idle);
+            }
             MgAction::SetOutputDir(f) => {
                 self.set_output_destination_dir(f.as_ref());
                 self.prefs_store

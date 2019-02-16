@@ -24,15 +24,16 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use mgapplication::MgApplication;
+use drivers::Error;
 
 pub enum MgAction {
     RescanDevices,
     ModelChanged(String),
     PortChanged(String),
     StartErase,
-    DoneErase,
+    DoneErase(Error),
     StartDownload,
-    DoneDownload,
+    DoneDownload(Error),
     SetOutputDir(path::PathBuf),
 }
 

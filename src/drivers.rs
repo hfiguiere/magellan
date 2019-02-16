@@ -12,6 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::fmt;
+use std::io;
 use std::path::PathBuf;
 
 use Format;
@@ -38,17 +39,25 @@ pub struct Desc {
 }
 
 pub enum Error {
+    Success,
     Unsupported,
+    NoDriver,
+    Cancelled,
     WrongArg,
     Failed(String),
+    IOError(io::Error),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::Success => write!(f, "Success"),
             Error::Unsupported => write!(f, "Unsupported"),
+            Error::NoDriver => write!(f, "No driver"),
+            Error::Cancelled => write!(f, "Cancelled"),
             Error::WrongArg => write!(f, "WrongArg"),
             Error::Failed(ref s) => write!(f, "{}", s),
+            Error::IOError(ref e) => write!(f, "{}", e),
         }
     }
 }
