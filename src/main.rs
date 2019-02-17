@@ -18,9 +18,9 @@ extern crate gtk;
 extern crate gudev;
 #[macro_use]
 extern crate lazy_static;
+extern crate dirs;
 extern crate libudev;
 extern crate rustc_serialize;
-extern crate dirs;
 
 use gio::prelude::*;
 

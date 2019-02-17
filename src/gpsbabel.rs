@@ -121,8 +121,10 @@ impl Driver for GpsBabel {
 
         /* gpsbabel -t -w -i m241 -f /dev/ttyACM0 -o gpx -F $1 */
         let output = GpsBabel::build_basic_command_line(&self.device_id, &self.port, erase, false)
-            .arg("-o").arg(fmt_string) // format
-            .arg("-F").arg(String::from(dir.to_str().unwrap()))
+            .arg("-o")
+            .arg(fmt_string) // format
+            .arg("-F")
+            .arg(String::from(dir.to_str().unwrap()))
             .output()
             .expect("failed to execute process");
         println!("stdout: {}", String::from_utf8_lossy(&output.stdout));

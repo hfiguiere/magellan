@@ -148,19 +148,16 @@ impl Manager {
                 return Vec::new();
             }
             let ds = devices.unwrap();
-            let mut dv2: Vec<drivers::Port> = ds.map(|dev| {
-                let path = dev.devnode().unwrap().to_path_buf();
-                let id = dev.sysname().to_string_lossy().into_owned();
-                let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
-                    Some(s) => s.to_string_lossy().into_owned(),
-                    None => String::from("(Unknown)"),
-                };
-                drivers::Port {
-                    id,
-                    label,
-                    path,
-                }
-            }).collect();
+            let mut dv2: Vec<drivers::Port> = ds
+                .map(|dev| {
+                    let path = dev.devnode().unwrap().to_path_buf();
+                    let id = dev.sysname().to_string_lossy().into_owned();
+                    let label = match dev.property_value("ID_MODEL_FROM_DATABASE") {
+                        Some(s) => s.to_string_lossy().into_owned(),
+                        None => String::from("(Unknown)"),
+                    };
+                    drivers::Port { id, label, path }
+                }).collect();
             dv.append(&mut dv2);
         }
 
@@ -169,7 +166,8 @@ impl Manager {
 
     fn get_port_filter_for_model(&self, model: &str) -> Vec<drivers::PortType> {
         match self.devices.iter().find(|&device| device.id == model) {
-            Some(device) => match self.drivers
+            Some(device) => match self
+                .drivers
                 .iter()
                 .find(|&driver| driver.id == device.driver)
             {

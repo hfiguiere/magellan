@@ -11,13 +11,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use dirs;
 use gio;
 use gio::prelude::*;
 use glib;
 use gtk;
 use gtk::prelude::*;
 use gudev::{ClientExt, DeviceExt};
-use dirs;
 
 use std;
 use std::cell::RefCell;
@@ -103,7 +103,8 @@ impl MgApplication {
         });
 
         let device_manager = devices::Manager::new();
-        device_manager.gudev_client
+        device_manager
+            .gudev_client
             .connect_uevent(move |_, action, device| {
                 let subsystem = device.get_subsystem().unwrap_or_default();
                 println!("received event {} {}", action, subsystem);
@@ -154,16 +155,16 @@ impl MgApplication {
             Some("Save File"),
             Some(&self.window),
             gtk::FileChooserAction::Save,
-            );
+        );
         chooser.add_buttons(&[
             ("Save", gtk::ResponseType::Ok.into()),
             ("Cancel", gtk::ResponseType::Cancel.into()),
-            ]);
+        ]);
         chooser.set_current_folder(
             self.prefs_store
                 .get_string("output", "dir")
                 .unwrap_or_default(),
-            );
+        );
         if chooser.run() == gtk::ResponseType::Ok.into() {
             let result = chooser.get_filename();
             chooser.destroy();
@@ -189,10 +190,8 @@ impl MgApplication {
                         } else {
                             MgAction::DoneDownload(drivers::Error::Success)
                         }
-                    },
-                    Err(e) => {
-                        MgAction::DoneDownload(e)
                     }
+                    Err(e) => MgAction::DoneDownload(e),
                 }
             } else {
                 MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
@@ -228,9 +227,7 @@ impl MgApplication {
                         println!("success erasing");
                         MgAction::DoneErase(drivers::Error::Success)
                     }
-                    Err(e) => {
-                        MgAction::DoneErase(e)
-                    }
+                    Err(e) => MgAction::DoneErase(e),
                 }
             } else {
                 MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
@@ -262,11 +259,14 @@ impl MgApplication {
             return Err(glib::Error::new(
                 glib::FileError::Failed,
                 &format!("Can't create settings dir '{:?}': {}", path, e),
-                ));
+            ));
         }
         path.push("gpsami.ini");
 
-        if let Err(e) = self.prefs_store.load_from_file(path, glib::KeyFileFlags::NONE) {
+        if let Err(e) = self
+            .prefs_store
+            .load_from_file(path, glib::KeyFileFlags::NONE)
+        {
             println!("error with g_key_file {}", e);
             Err(e)
         } else {
@@ -304,16 +304,18 @@ impl MgApplication {
             }
         }
 
-        let model = self.prefs_store
+        let model = self
+            .prefs_store
             .get_string("device", "model")
             .unwrap_or_default();
-        let port = self.prefs_store
+        let port = self
+            .prefs_store
             .get_string("device", "port")
             .unwrap_or_default();
 
         self.model_combo.set_active_id(model.as_ref());
         self.port_combo.set_active_id(port.as_ref());
-   }
+    }
 
     fn model_changed(&mut self, id: &str) {
         println!("model changed to {}", id);
@@ -360,10 +362,10 @@ impl MgApplication {
         match state {
             UIState::Idle => {
                 self.content_box.set_sensitive(true);
-            },
+            }
             UIState::InProgress => {
                 self.content_box.set_sensitive(false);
-            },
+            }
         }
     }
 
@@ -382,10 +384,8 @@ impl MgApplication {
             }
             MgAction::DoneErase(e) => {
                 match e {
-                    drivers::Error::Success |
-                    drivers::Error::Cancelled => {},
-                    _ =>
-                        self.report_error("Error erasing GPS data.", &e.to_string()),
+                    drivers::Error::Success | drivers::Error::Cancelled => {}
+                    _ => self.report_error("Error erasing GPS data.", &e.to_string()),
                 }
                 self.set_state(UIState::Idle);
             }
@@ -395,10 +395,8 @@ impl MgApplication {
             }
             MgAction::DoneDownload(e) => {
                 match e {
-                    drivers::Error::Success |
-                    drivers::Error::Cancelled => {},
-                    _ =>
-                        self.report_error("Error downloading GPS data.", &e.to_string()),
+                    drivers::Error::Success | drivers::Error::Cancelled => {}
+                    _ => self.report_error("Error downloading GPS data.", &e.to_string()),
                 }
                 self.set_state(UIState::Idle);
             }
