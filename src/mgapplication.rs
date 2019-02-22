@@ -73,12 +73,12 @@ impl MgApplication {
 
         model_combo.connect_changed(move |combo| {
             if let Some(id) = combo.get_active_id() {
-                post_event(MgAction::ModelChanged(id));
+                post_event(MgAction::ModelChanged(id.to_string()));
             }
         });
         port_combo.connect_changed(move |entry| {
             if let Some(id) = entry.get_active_id() {
-                post_event(MgAction::PortChanged(id));
+                post_event(MgAction::PortChanged(id.to_string()));
             }
         });
         let dload_action = gio::SimpleAction::new("download", None);
@@ -106,8 +106,9 @@ impl MgApplication {
         device_manager
             .gudev_client
             .connect_uevent(move |_, action, device| {
-                let subsystem = device.get_subsystem().unwrap_or_default();
-                println!("received event {} {}", action, subsystem);
+                if let Some(subsystem) = device.get_subsystem() {
+                    println!("received event {} {}", action, subsystem);
+                }
                 post_event(MgAction::RescanDevices)
             });
 
@@ -125,15 +126,14 @@ impl MgApplication {
         };
 
         let me = Rc::new(RefCell::new(app));
+
         if me.borrow_mut().load_settings().is_err() {
             println!("Error loading settings");
         }
-        output_dir_chooser.set_current_folder(
-            me.borrow()
-                .prefs_store
-                .get_string("output", "dir")
-                .unwrap_or_default(),
-        );
+
+        if let Ok(output_dir) = me.borrow().prefs_store.get_string("output", "dir") {
+            output_dir_chooser.set_current_folder(output_dir.to_string());
+        }
 
         let ctx = glib::MainContext::default();
         let metoo = me.clone();
@@ -160,11 +160,9 @@ impl MgApplication {
             ("Save", gtk::ResponseType::Ok.into()),
             ("Cancel", gtk::ResponseType::Cancel.into()),
         ]);
-        chooser.set_current_folder(
-            self.prefs_store
-                .get_string("output", "dir")
-                .unwrap_or_default(),
-        );
+        if let Ok(output_dir) = self.prefs_store.get_string("output", "dir") {
+            chooser.set_current_folder(output_dir.to_string());
+        }
         if chooser.run() == gtk::ResponseType::Ok.into() {
             let result = chooser.get_filename();
             chooser.destroy();
@@ -304,17 +302,13 @@ impl MgApplication {
             }
         }
 
-        let model = self
-            .prefs_store
-            .get_string("device", "model")
-            .unwrap_or_default();
-        let port = self
-            .prefs_store
-            .get_string("device", "port")
-            .unwrap_or_default();
+        if let Ok(model) = self.prefs_store.get_string("device", "model") {
+            self.model_combo.set_active_id(model.as_ref());
+        }
 
-        self.model_combo.set_active_id(model.as_ref());
-        self.port_combo.set_active_id(port.as_ref());
+        if let Ok(port) = self.prefs_store.get_string("device", "port") {
+            self.port_combo.set_active_id(port.as_ref());
+        }
     }
 
     fn model_changed(&mut self, id: &str) {
