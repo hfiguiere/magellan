@@ -303,11 +303,11 @@ impl MgApplication {
         }
 
         if let Ok(model) = self.prefs_store.get_string("device", "model") {
-            self.model_combo.set_active_id(model.as_ref());
+            self.model_combo.set_active_id(Some(model.as_ref()));
         }
 
         if let Ok(port) = self.prefs_store.get_string("device", "port") {
-            self.port_combo.set_active_id(port.as_ref());
+            self.port_combo.set_active_id(Some(port.as_ref()));
         }
     }
 
