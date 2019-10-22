@@ -41,9 +41,9 @@ pub enum Format {
 
 /// Init Gtk and stuff.
 fn init() {
-    use std::sync::{Once, ONCE_INIT};
+    use std::sync::Once;
 
-    static START: Once = ONCE_INIT;
+    static START: Once = Once::new();
 
     START.call_once(|| {
         glib::set_prgname(Some("gpsami"));
