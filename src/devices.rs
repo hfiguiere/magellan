@@ -184,7 +184,7 @@ impl Manager {
     }
 
     // Get a driver for the device from the current manager.
-    pub fn get_device(&self) -> Option<Arc<drivers::Driver + Send + Sync>> {
+    pub fn get_device(&self) -> Option<Arc<dyn drivers::Driver + Send + Sync>> {
         if self.model == None {
             return None;
         }
