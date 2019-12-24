@@ -6,13 +6,13 @@ license = "GPL-3"
 
 [dependencies]
 glib-sys = "*"
-glib = { version="^0.8.0" }
-gio = { version="^0.7.0" }
-gtk = { version="^0.7.0" }
+glib = { version="^0.9.0" }
+gio = { version="^0.8.0" }
+gtk = { version="^0.8.0" }
 rustc-serialize = "0.3"
 lazy_static = "^1.2.0"
 libudev = "0.2.0"
-gudev = "^0.7.0"
+gudev = "^0.8.0"
 dirs = "^1.0.4"
 
 [[bin]]
