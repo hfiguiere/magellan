@@ -3,17 +3,20 @@ name = "gpsami"
 version = "0.1.0"
 authors = ["Hubert Figuière <hub@figuiere.net>"]
 license = "GPL-3"
+edition = "2018"
 
 [dependencies]
 glib-sys = "*"
-glib = { version="^0.9.0" }
+glib = { version="^0.9.2" }
 gio = { version="^0.8.0" }
-gtk = { version="^0.8.0" }
+gtk = { version="^0.8.1" }
 rustc-serialize = "0.3"
 lazy_static = "^1.2.0"
 libudev = "0.2.0"
 gudev = "^0.8.0"
 dirs = "^1.0.4"
+
+gettext-rs = { version = "0.4.4", features = ["gettext-system"] }
 
 [[bin]]
 name = "gpsami"

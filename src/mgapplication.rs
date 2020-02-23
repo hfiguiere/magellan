@@ -26,11 +26,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 
-use actionqueue::{ActionQueueSource, MgAction, QUEUE};
-use devices;
-use drivers;
-use utils;
-use Format;
+use crate::actionqueue::{ActionQueueSource, MgAction, QUEUE};
+use crate::devices;
+use crate::drivers;
+use crate::utils;
+use crate::Format;
 
 enum UIState {
     Idle,
@@ -60,7 +60,7 @@ pub struct MgApplication {
 
 impl MgApplication {
     pub fn new(gapp: &gtk::Application) -> Rc<RefCell<Self>> {
-        let builder = gtk::Builder::new_from_string(include_str!("mgwindow.ui"));
+        let builder = gtk::Builder::new_from_resource("/net/figuiere/gpsami/mgwindow.ui");
         let window: gtk::ApplicationWindow = builder.get_object("main_window").unwrap();
         let content_box = builder.get_object::<gtk::Box>("content_box").unwrap();
         let erase_checkbtn: gtk::CheckButton = builder.get_object("erase_checkbtn").unwrap();

@@ -15,7 +15,7 @@ use std::fmt;
 use std::io;
 use std::path::PathBuf;
 
-use Format;
+use crate::Format;
 
 #[derive(Debug)]
 pub struct Port {

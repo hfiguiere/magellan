@@ -17,8 +17,8 @@ use gudev;
 use libudev;
 use rustc_serialize::json;
 
-use drivers;
-use gpsbabel;
+use crate::drivers;
+use crate::gpsbabel;
 
 /// Device static capability
 #[derive(Clone, Debug, RustcDecodable)]
@@ -157,7 +157,8 @@ impl Manager {
                         None => String::from("(Unknown)"),
                     };
                     drivers::Port { id, label, path }
-                }).collect();
+                })
+                .collect();
             dv.append(&mut dv2);
         }
 

@@ -15,10 +15,10 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use devices::Capability;
-use drivers::Driver;
-use drivers::Error;
-use Format;
+use crate::devices::Capability;
+use crate::drivers::Driver;
+use crate::drivers::Error;
+use crate::Format;
 
 /// GpsBabel "driver". Will use gpsbabel to connect to device.
 pub struct GpsBabel {

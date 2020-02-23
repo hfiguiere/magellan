@@ -1,0 +1,4 @@
+data/net.figuiere.gpsami.desktop.in
+data/net.figuiere.gpsami.appdata.xml.in
+data/net.figuiere.gpsami.gschema.xml
+src/window.ui

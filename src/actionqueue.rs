@@ -23,8 +23,8 @@ use std::path;
 use std::rc::Rc;
 use std::sync::Mutex;
 
-use drivers::Error;
-use mgapplication::MgApplication;
+use crate::drivers::Error;
+use crate::mgapplication::MgApplication;
 
 pub enum MgAction {
     RescanDevices,

@@ -22,11 +22,13 @@ extern crate dirs;
 extern crate libudev;
 extern crate rustc_serialize;
 
+use gettextrs::*;
 use gio::prelude::*;
 
 use mgapplication::MgApplication;
 
 mod actionqueue;
+mod config;
 mod devices;
 mod drivers;
 mod gpsbabel;
@@ -52,6 +54,14 @@ fn init() {
         if gtk::init().is_err() {
             panic!("Failed to initialize GTK.");
         }
+
+        setlocale(LocaleCategory::LcAll, "");
+        bindtextdomain("gpsami", config::LOCALEDIR);
+        textdomain("gpsami");
+
+        let res = gio::Resource::load(config::PKGDATADIR.to_owned() + "/gpsami.gresource")
+            .expect("Could not load resources");
+        gio::resources_register(&res);
     });
 }
 
@@ -61,7 +71,8 @@ fn main() {
     let gapp = gtk::Application::new(
         Some("net.figuiere.gpsami"),
         gio::ApplicationFlags::FLAGS_NONE,
-    ).unwrap();
+    )
+    .unwrap();
 
     gapp.connect_activate(move |gapp| {
         let app = MgApplication::new(&gapp);

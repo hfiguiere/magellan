@@ -1,13 +1,2 @@
 target
-Makefile
-Makefile.in
-aclocal.m4
-autom4te.cache/
-compile
-config.log
-config.status
-configure
-depcomp
-install-sh
-missing
-data/gpsami.desktop
+src/config.rs

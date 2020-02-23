@@ -1,11 +1,9 @@
-
 [Desktop Entry]
 Name=GPS Ami
 Comment=Download tracks from your GPS logger.
 Keywords=photo;gps
-Exec=gpsami %u
-Icon=gpsami
-StartupNotify=true
+Exec=gpsami
 Terminal=false
 Type=Application
-Categories=GNOME;GTK;Utility;
+Categories=GNOME;GTK;Utility
+StartupNotify=true
