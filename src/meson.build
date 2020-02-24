@@ -1,4 +1,5 @@
-pkgdatadir = join_paths(get_option('prefix'), get_option('datadir'), meson.project_name())
+
+pkgdatadir = join_paths(datadir, meson.project_name())
 gnome = import('gnome')
 
 resources = gnome.compile_resources('gpsami',

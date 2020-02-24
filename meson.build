@@ -7,6 +7,10 @@ project('gpsami',
 
 i18n = import('i18n')
 
+application_id = 'net.figuiere.gpsami'
+
+datadir = get_option('prefix') / get_option('datadir')
+iconsdir = datadir / 'icons'
 
 subdir('data')
 subdir('src')
