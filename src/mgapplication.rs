@@ -157,13 +157,13 @@ impl MgApplication {
             gtk::FileChooserAction::Save,
         );
         chooser.add_buttons(&[
-            ("Save", gtk::ResponseType::Ok.into()),
-            ("Cancel", gtk::ResponseType::Cancel.into()),
+            ("Save", gtk::ResponseType::Ok),
+            ("Cancel", gtk::ResponseType::Cancel),
         ]);
         if let Ok(output_dir) = self.prefs_store.get_string("output", "dir") {
             chooser.set_current_folder(output_dir.to_string());
         }
-        if chooser.run() == gtk::ResponseType::Ok.into() {
+        if chooser.run() == gtk::ResponseType::Ok {
             let result = chooser.get_filename();
             chooser.destroy();
             if let Some(f) = result {
@@ -236,7 +236,7 @@ impl MgApplication {
     fn settings_dir() -> path::PathBuf {
         // XXX replace this by glib stuff when we can.
         // Also we treat a failure of this as fatal.
-        let mut path: path::PathBuf = dirs::home_dir().unwrap();
+        let mut path: path::PathBuf = dirs::home_dir().expect("Can't locate home_dir");
         path.push(".gpsami");
         path
     }
@@ -319,8 +319,8 @@ impl MgApplication {
         }
 
         let cap = self.device_manager.device_capability(id);
-        if cap.is_some() {
-            self.update_device_capability(&cap.unwrap());
+        if let Some(cap) = cap {
+            self.update_device_capability(&cap);
             self.device_manager.set_model(id);
             let ports = self.device_manager.get_ports_for_model(id);
             self.populate_port_combo(&ports.unwrap_or_default());

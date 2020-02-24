@@ -1,3 +1,5 @@
-pub static PKGDATADIR: &'static str = @pkgdatadir@;
-pub static VERSION: &'static str = @VERSION@;
-pub static LOCALEDIR: &'static str = @localedir@;
+#[allow(dead_code)]
+pub static PKGDATADIR: &str = @pkgdatadir@;
+#[allow(dead_code)]
+pub static VERSION: &str = @VERSION@;
+pub static LOCALEDIR: &str = @localedir@;
