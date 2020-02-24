@@ -33,6 +33,7 @@ mod devices;
 mod drivers;
 mod gpsbabel;
 mod mgapplication;
+mod static_resources;
 mod utils;
 
 pub enum Format {
@@ -59,9 +60,7 @@ fn init() {
         bindtextdomain("gpsami", config::LOCALEDIR);
         textdomain("gpsami");
 
-        let res = gio::Resource::load(config::PKGDATADIR.to_owned() + "/gpsami.gresource")
-            .expect("Could not load resources");
-        gio::resources_register(&res);
+        static_resources::init().expect("Could not load resources");
     });
 }
 

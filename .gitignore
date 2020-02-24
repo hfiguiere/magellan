@@ -1,2 +1,3 @@
 target
 src/config.rs
+src/static_resources.rs

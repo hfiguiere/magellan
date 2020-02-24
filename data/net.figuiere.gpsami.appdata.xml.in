@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-	<id>net.figuiere.gpsami.desktop</id>
-	<metadata_license>CC0-1.0</metadata_license>
-	<project_license>GPL-3.0-or-later</project_license>
-	<description>
-	</description>
+  <id>net.figuiere.gpsami.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>GPSAmi</name>
+  <summary>GPSAmi is an application to download data from your GPS logger.</summary>
+  <description>
+    <p>GPSAmi is an application to download data from your GPS logger and save it to a GPX file.</p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Main Window</caption>
+      <image>https://www.figuiere.net/hub/blog/images/gps-ami-20161106.png</image>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://gitlab.gnome.org/hub/gpsami</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2020-02-23" />
+  </releases>
 </component>

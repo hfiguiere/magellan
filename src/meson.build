@@ -1,7 +1,7 @@
 pkgdatadir = join_paths(get_option('prefix'), get_option('datadir'), meson.project_name())
 gnome = import('gnome')
 
-gnome.compile_resources('gpsami',
+resources = gnome.compile_resources('gpsami',
   'gpsami.gresource.xml',
   gresource_bundle: true,
   install: true,
@@ -27,6 +27,22 @@ run_command(
   check: true
 )
 
+# include_bytes! only takes a string literal
+resource_conf = configuration_data()
+resource_conf.set_quoted('RESOURCEFILE', resources.full_path())
+resource_rs = configure_file(
+  input: 'static_resources.rs.in',
+  output: 'static_resources.rs',
+  configuration: resource_conf
+)
+
+run_command(
+  'cp',
+  resource_rs,
+  meson.current_source_dir(),
+  check: true
+)
+
 sources = files(
   'actionqueue.rs',
   'config.rs',
@@ -35,6 +51,7 @@ sources = files(
   'gpsbabel.rs',
   'main.rs',
   'mgapplication.rs',
+  'static_resources.rs',
   'utils.rs',
 )
 
@@ -47,6 +64,7 @@ cargo_release = custom_target(
   console: true,
   install: true,
   install_dir: get_option('bindir'),
+  depends: resources,
   command: [
     cargo_script,
     meson.build_root(),
