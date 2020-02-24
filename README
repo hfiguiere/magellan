@@ -9,12 +9,12 @@ It is written in Rust and uses Gtk3 for the UI and gpsbabel for the download par
 Requires libudev for listing devices, therefor require some effort to
 run on non-Linux. Patches welcome.
 
-See doc/devices.md for information about device support.
+See `doc/devices.md` for information about device support.
 
 To build
 --------
 
-You need meson and Rust to build.
+You need meson and Rust to build. You also need gtk3 and gudev.
 
 To configure the (release) build do:
 
@@ -57,12 +57,12 @@ Contributors
 
 Written and maintained by:
 
-Hubert Figuière <hub@figuiere.net>
+  Hubert Figuière <hub@figuiere.net>
 
 Contributors:
 
-Johannes J. Schmidt <jo@die-tf.de>
+  Johannes J. Schmidt <jo@die-tf.de>
 
 Icon by:
 
-Daniel Galleguillos
+  Daniel Galleguillos

@@ -1,13 +1,14 @@
 Device support
 ==============
 
-This application has currently only been tested with a Holux M-1200E.
+This application has currently only been tested with a Holux M-1200E,
+because that's the only device I have.
 
 Supported devices
 -----------------
 
-We currently only support devices that gpsbabel supports. Albeit it is
-mostly untested. We use gpsbabel to perform the download.
+GPSAmi currently only supports devices that gpsbabel supports. Albeit
+it is mostly untested. gpsbabel is used to perform the download.
 
 USB Serial or Bluetooth Serial (SPP through rfcomm) are the only
 connectivity types supported for now.
@@ -17,7 +18,7 @@ Adding devices
 
 # Device definitions
 
-A device list is in src/devices.json. The file is currently inlined in
+A device list is in `src/devices.json`. The file is currently inlined in
 the code, so you'd need to rebuild the application for changes to take
 effect. It is in JSON format.
 
@@ -43,14 +44,14 @@ Drivers are defined with the following struct:
 
 # If your device needs a new driver.
 
-If it works with gpsbabel already, it probably just need the driver
+If it works with gpsbabel already, it probably just needs the driver
 entry in the devices.json and adding the proper match pattern in
-devices::get_device()
+`devices::get_device()`
 
-If it is something else then it is more complicated. You might of to
-implement a new driver.
+If it is something else then it is more complicated. A new driver
+might need to be written.
 
-Feel free to file an issue https://github.com/hfiguiere/gpsami/issues/new
+Feel free to file an issue https://gitlab.gnome.org/hub/gpsami/issues
 
 If your device is supported by gpsbabel, please indicate which type
 (-i option) or eventually the whole command line you use.
