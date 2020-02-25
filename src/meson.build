@@ -45,7 +45,6 @@ run_command(
 )
 
 sources = files(
-  'actionqueue.rs',
   'config.rs',
   'devices.rs',
   'drivers.rs',

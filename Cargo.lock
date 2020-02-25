@@ -377,7 +377,6 @@ dependencies = [
  "glib-sys 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gudev 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libudev 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

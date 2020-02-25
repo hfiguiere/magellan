@@ -11,14 +11,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+extern crate dirs;
 extern crate gio;
 extern crate glib;
 extern crate glib_sys;
 extern crate gtk;
 extern crate gudev;
-#[macro_use]
-extern crate lazy_static;
-extern crate dirs;
 extern crate libudev;
 extern crate rustc_serialize;
 
@@ -27,7 +25,6 @@ use gio::prelude::*;
 
 use mgapplication::MgApplication;
 
-mod actionqueue;
 mod config;
 mod devices;
 mod drivers;

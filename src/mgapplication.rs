@@ -26,7 +26,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 
-use crate::actionqueue::{ActionQueueSource, MgAction, QUEUE};
 use crate::devices;
 use crate::drivers;
 use crate::utils;
@@ -37,9 +36,20 @@ enum UIState {
     InProgress,
 }
 
-fn post_event(action: MgAction) {
-    if let Ok(ref mut q) = QUEUE.lock() {
-        q.queue.push_back(action);
+pub enum MgAction {
+    RescanDevices,
+    ModelChanged(String),
+    PortChanged(String),
+    StartErase,
+    DoneErase(drivers::Error),
+    StartDownload,
+    DoneDownload(drivers::Error),
+    SetOutputDir(path::PathBuf),
+}
+
+fn post_event(sender: &glib::Sender<MgAction>, action: MgAction) {
+    if let Err(err) = sender.send(action) {
+        println!("Sender error: {}", err);
     }
 }
 
@@ -56,6 +66,7 @@ pub struct MgApplication {
     prefs_store: glib::KeyFile,
 
     output_dest_dir: path::PathBuf,
+    sender: glib::Sender<MgAction>,
 }
 
 impl MgApplication {
@@ -71,45 +82,53 @@ impl MgApplication {
 
         gapp.add_window(&window);
 
+        let (sender, receiver) = glib::MainContext::channel::<MgAction>(glib::PRIORITY_DEFAULT);
+
+        let sender2 = sender.clone();
         model_combo.connect_changed(move |combo| {
             if let Some(id) = combo.get_active_id() {
-                post_event(MgAction::ModelChanged(id.to_string()));
+                post_event(&sender2, MgAction::ModelChanged(id.to_string()));
             }
         });
+        let sender2 = sender.clone();
         port_combo.connect_changed(move |entry| {
             if let Some(id) = entry.get_active_id() {
-                post_event(MgAction::PortChanged(id.to_string()));
+                post_event(&sender2, MgAction::PortChanged(id.to_string()));
             }
         });
         let dload_action = gio::SimpleAction::new("download", None);
+        let sender2 = sender.clone();
         dload_action.connect_activate(move |_, _| {
-            post_event(MgAction::StartDownload);
+            post_event(&sender2, MgAction::StartDownload);
         });
         dload_action.set_enabled(false);
         window.add_action(&dload_action);
 
         let erase_action = gio::SimpleAction::new("erase", None);
+        let sender2 = sender.clone();
         erase_action.connect_activate(move |_, _| {
-            post_event(MgAction::StartErase);
+            post_event(&sender2, MgAction::StartErase);
         });
         erase_action.set_enabled(false);
         window.add_action(&erase_action);
 
+        let sender2 = sender.clone();
         output_dir_chooser.connect_file_set(move |w| {
             let file_name = w.get_filename();
             if let Some(f) = file_name {
-                post_event(MgAction::SetOutputDir(f));
+                post_event(&sender2, MgAction::SetOutputDir(f));
             }
         });
 
         let device_manager = devices::Manager::new();
+        let sender2 = sender.clone();
         device_manager
             .gudev_client
             .connect_uevent(move |_, action, device| {
                 if let Some(subsystem) = device.get_subsystem() {
                     println!("received event {} {}", action, subsystem);
                 }
-                post_event(MgAction::RescanDevices)
+                post_event(&sender2, MgAction::RescanDevices);
             });
 
         let app = MgApplication {
@@ -123,9 +142,16 @@ impl MgApplication {
             device_manager,
             prefs_store: glib::KeyFile::new(),
             output_dest_dir: path::PathBuf::new(),
+            sender,
         };
 
         let me = Rc::new(RefCell::new(app));
+
+        let metoo = me.clone();
+        receiver.attach(None, move |e| {
+            metoo.borrow_mut().process_event(e);
+            glib::Continue(true)
+        });
 
         if me.borrow_mut().load_settings().is_err() {
             println!("Error loading settings");
@@ -134,12 +160,6 @@ impl MgApplication {
         if let Ok(output_dir) = me.borrow().prefs_store.get_string("output", "dir") {
             output_dir_chooser.set_current_folder(output_dir.to_string());
         }
-
-        let ctx = glib::MainContext::default();
-        let metoo = me.clone();
-        let source = ActionQueueSource::new_source(metoo);
-        source.attach(Some(&ctx));
-
         me
     }
 
@@ -147,7 +167,10 @@ impl MgApplication {
         let device = self.device_manager.get_device();
         if device.is_none() {
             println!("nodriver");
-            post_event(MgAction::DoneDownload(drivers::Error::NoDriver));
+            post_event(
+                &self.sender,
+                MgAction::DoneDownload(drivers::Error::NoDriver),
+            );
             return;
         }
         let output_file: path::PathBuf;
@@ -169,31 +192,41 @@ impl MgApplication {
             if let Some(f) = result {
                 output_file = f;
             } else {
-                post_event(MgAction::DoneDownload(drivers::Error::Cancelled));
+                post_event(
+                    &self.sender,
+                    MgAction::DoneDownload(drivers::Error::Cancelled),
+                );
                 return;
             }
         } else {
             chooser.destroy();
-            post_event(MgAction::DoneDownload(drivers::Error::Cancelled));
+            post_event(
+                &self.sender,
+                MgAction::DoneDownload(drivers::Error::Cancelled),
+            );
             return;
         }
         let mut d = device.unwrap();
+        let sender = self.sender.clone();
         thread::spawn(move || {
-            post_event(if Arc::get_mut(&mut d).unwrap().open() {
-                match d.download(Format::Gpx, false) {
-                    Ok(temp_output_filename) => {
-                        println!("success {}", temp_output_filename.to_str().unwrap());
-                        if let Err(e) = std::fs::copy(temp_output_filename, &output_file) {
-                            MgAction::DoneDownload(drivers::Error::IOError(e))
-                        } else {
-                            MgAction::DoneDownload(drivers::Error::Success)
+            post_event(
+                &sender,
+                if Arc::get_mut(&mut d).unwrap().open() {
+                    match d.download(Format::Gpx, false) {
+                        Ok(temp_output_filename) => {
+                            println!("success {}", temp_output_filename.to_str().unwrap());
+                            if let Err(e) = std::fs::copy(temp_output_filename, &output_file) {
+                                MgAction::DoneDownload(drivers::Error::IOError(e))
+                            } else {
+                                MgAction::DoneDownload(drivers::Error::Success)
+                            }
                         }
+                        Err(e) => MgAction::DoneDownload(e),
                     }
-                    Err(e) => MgAction::DoneDownload(e),
-                }
-            } else {
-                MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
-            });
+                } else {
+                    MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
+                },
+            );
         });
     }
 
@@ -214,22 +247,26 @@ impl MgApplication {
         let device = self.device_manager.get_device();
         if device.is_none() {
             println!("nodriver");
-            post_event(MgAction::DoneErase(drivers::Error::NoDriver));
+            post_event(&self.sender, MgAction::DoneErase(drivers::Error::NoDriver));
             return;
         }
         let mut d = device.unwrap();
+        let sender = self.sender.clone();
         thread::spawn(move || {
-            post_event(if Arc::get_mut(&mut d).unwrap().open() {
-                match d.erase() {
-                    Ok(_) => {
-                        println!("success erasing");
-                        MgAction::DoneErase(drivers::Error::Success)
+            post_event(
+                &sender,
+                if Arc::get_mut(&mut d).unwrap().open() {
+                    match d.erase() {
+                        Ok(_) => {
+                            println!("success erasing");
+                            MgAction::DoneErase(drivers::Error::Success)
+                        }
+                        Err(e) => MgAction::DoneErase(e),
                     }
-                    Err(e) => MgAction::DoneErase(e),
-                }
-            } else {
-                MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
-            });
+                } else {
+                    MgAction::DoneErase(drivers::Error::Failed("open failed".to_string()))
+                },
+            );
         });
     }
 
