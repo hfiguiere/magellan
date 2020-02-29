@@ -65,10 +65,11 @@ impl GpsBabel {
         erase_only: bool,
     ) -> Command {
         let mut device_string = String::from(device_id);
+        // erase and erase_only can't be true at the same time.
+        // assume that if erase is true, then we want a download.
         if erase {
             device_string.push_str(",erase");
-        }
-        if erase_only {
+        } else if erase_only {
             device_string.push_str(",erase_only");
         }
         let mut command = Command::new("gpsbabel");
