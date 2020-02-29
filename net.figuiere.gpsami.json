@@ -38,6 +38,7 @@
         "*.a"
     ],
     "modules" : [
+        "build-aux/gudev.json",
         {
             "name" : "gpsami",
             "builddir" : true,
