@@ -71,7 +71,7 @@ pub struct MgApplication {
 
 impl MgApplication {
     pub fn new(gapp: &gtk::Application) -> Rc<RefCell<Self>> {
-        let builder = gtk::Builder::new_from_resource("/net/figuiere/gpsami/mgwindow.ui");
+        let builder = gtk::Builder::from_resource("/net/figuiere/gpsami/mgwindow.ui");
         let window: gtk::ApplicationWindow = builder.get_object("main_window").unwrap();
         let content_box = builder.get_object::<gtk::Box>("content_box").unwrap();
         let erase_checkbtn: gtk::CheckButton = builder.get_object("erase_checkbtn").unwrap();
@@ -188,7 +188,7 @@ impl MgApplication {
         }
         if chooser.run() == gtk::ResponseType::Ok {
             let result = chooser.get_filename();
-            chooser.destroy();
+            chooser.close();
             if let Some(f) = result {
                 output_file = f;
             } else {
@@ -199,7 +199,7 @@ impl MgApplication {
                 return;
             }
         } else {
-            chooser.destroy();
+            chooser.close();
             post_event(
                 &self.sender,
                 MgAction::DoneDownload(drivers::Error::Cancelled),
@@ -240,7 +240,7 @@ impl MgApplication {
         );
         dialog.set_property_secondary_text(Some(reason));
         dialog.run();
-        dialog.destroy();
+        dialog.close();
     }
 
     fn do_erase(&self) {
