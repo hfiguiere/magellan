@@ -13,8 +13,6 @@
 
 use std::sync::Arc;
 
-use gudev;
-use libudev;
 use rustc_serialize::json;
 
 use crate::drivers;

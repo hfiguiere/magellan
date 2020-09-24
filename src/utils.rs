@@ -11,7 +11,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use gtk;
 use gtk::prelude::*;
 
 /// Setup a gtk::ComboBox model to have id in column 1 and label in column 2
