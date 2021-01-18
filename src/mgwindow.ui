@@ -17,6 +17,7 @@
         <property name="margin_top">10</property>
         <property name="margin_bottom">10</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">4</property>
         <child>
           <object class="GtkFrame" id="gps_device_frame">
             <property name="can_focus">0</property>
@@ -24,19 +25,26 @@
               <object class="GtkBox" id="box3">
                 <property name="can_focus">0</property>
                 <property name="orientation">vertical</property>
-                <property name="spacing">3</property>
+                <property name="spacing">4</property>
                 <child>
                   <object class="GtkComboBox" id="model_combo">
                     <property name="can_focus">0</property>
+                    <property name="margin-start">24</property>
+                    <property name="margin-end">4</property>
                   </object>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="port_combo"/>
+                  <object class="GtkComboBox" id="port_combo">
+                    <property name="margin-start">24</property>
+                    <property name="margin-end">4</property>
+                  </object>
                 </child>
                 <child>
                   <object class="GtkCheckButton" id="erase_checkbtn">
                     <property name="label" translatable="yes">_Erase after download</property>
                     <property name="use_underline">1</property>
+                    <property name="margin-start">24</property>
+                    <property name="margin-end">4</property>
                   </object>
                 </child>
               </object>
@@ -57,6 +65,8 @@
               <object class="FileChooserButton" id="output_dir_chooser">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="margin-start">24</property>
+                <property name="margin-end">4</property>
               </object>
             </child>
             <child type="label">
