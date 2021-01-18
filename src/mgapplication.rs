@@ -11,8 +11,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use gio::prelude::*;
-use gtk::prelude::*;
+use gtk4 as gtk;
+use gtk4::gio;
+use gtk4::glib;
+use gtk4::prelude::*;
 use gudev::{ClientExt, DeviceExt};
 
 use std::cell::RefCell;
@@ -23,6 +25,7 @@ use std::thread;
 
 use crate::devices;
 use crate::drivers;
+use crate::file_chooser_button::FileChooserButton;
 use crate::utils;
 use crate::Format;
 
@@ -72,7 +75,7 @@ impl MgApplication {
         let erase_checkbtn: gtk::CheckButton = builder.get_object("erase_checkbtn").unwrap();
         let model_combo: gtk::ComboBox = builder.get_object("model_combo").unwrap();
         let port_combo: gtk::ComboBox = builder.get_object("port_combo").unwrap();
-        let output_dir_chooser: gtk::FileChooserButton =
+        let output_dir_chooser: FileChooserButton =
             builder.get_object("output_dir_chooser").unwrap();
 
         gapp.add_window(&window);
@@ -107,13 +110,17 @@ impl MgApplication {
         erase_action.set_enabled(false);
         window.add_action(&erase_action);
 
-        let sender2 = sender.clone();
-        output_dir_chooser.connect_file_set(move |w| {
-            let file_name = w.get_filename();
-            if let Some(f) = file_name {
-                post_event(&sender2, MgAction::SetOutputDir(f));
-            }
-        });
+        output_dir_chooser.connect_local(
+            "file-set",
+            true,
+            glib::clone!(@weak output_dir_chooser, @strong sender => move |w| {
+                let file_name = output_dir_chooser.get_filename();
+                if let Some(f) = file_name {
+                    post_event(&sender, MgAction::SetOutputDir(f));
+                }
+                None
+            }),
+        );
 
         let device_manager = devices::Manager::new();
         let sender2 = sender.clone();
@@ -153,7 +160,7 @@ impl MgApplication {
         }
 
         if let Ok(output_dir) = me.borrow().prefs_store.get_string("output", "dir") {
-            output_dir_chooser.set_current_folder(output_dir.to_string());
+            output_dir_chooser.set_filename(path::PathBuf::from(output_dir.as_str()));
         }
         me
     }
@@ -168,41 +175,58 @@ impl MgApplication {
             );
             return;
         }
-        let output_file: path::PathBuf;
+        let device = device.unwrap();
+
         let chooser = gtk::FileChooserDialog::new(
             Some("Save File"),
             Some(&self.window),
             gtk::FileChooserAction::Save,
+            &[],
         );
         chooser.add_buttons(&[
             ("Save", gtk::ResponseType::Ok),
             ("Cancel", gtk::ResponseType::Cancel),
         ]);
         if let Ok(output_dir) = self.prefs_store.get_string("output", "dir") {
-            chooser.set_current_folder(output_dir.to_string());
+            chooser.set_current_folder(&gio::File::new_for_path(output_dir.as_str()));
         }
-        if chooser.run() == gtk::ResponseType::Ok {
-            let result = chooser.get_filename();
-            chooser.close();
-            if let Some(f) = result {
-                output_file = f;
-            } else {
-                post_event(
-                    &self.sender,
-                    MgAction::DoneDownload(drivers::Error::Cancelled),
-                );
-                return;
-            }
-        } else {
-            chooser.close();
-            post_event(
-                &self.sender,
-                MgAction::DoneDownload(drivers::Error::Cancelled),
-            );
-            return;
-        }
-        let mut d = device.unwrap();
-        let sender = self.sender.clone();
+        chooser.show();
+
+        chooser.connect_response(
+            glib::clone!(@strong self.sender as sender, @strong device => move |chooser, r| {
+                println!("Response {}", r);
+
+                chooser.close();
+                let output_file: path::PathBuf;
+                if r == gtk::ResponseType::Ok {
+                    let result = chooser.get_current_name();
+                    if let Some(f) = result {
+                        output_file = path::PathBuf::from(f.as_str());
+                    } else {
+                        post_event(
+                            &sender,
+                            MgAction::DoneDownload(drivers::Error::Cancelled),
+                        );
+                        return;
+                    }
+                } else {
+                    post_event(
+                        &sender,
+                        MgAction::DoneDownload(drivers::Error::Cancelled),
+                    );
+                    return;
+                }
+                Self::really_do_download(sender.clone(), &device, output_file);
+            }),
+        );
+    }
+
+    fn really_do_download(
+        sender: glib::Sender<MgAction>,
+        device: &Arc<dyn drivers::Driver + Send + Sync>,
+        output_file: path::PathBuf,
+    ) {
+        let mut d = device.clone();
         thread::spawn(move || {
             post_event(
                 &sender,
@@ -210,7 +234,7 @@ impl MgApplication {
                     match d.download(Format::Gpx, false) {
                         Ok(temp_output_filename) => {
                             println!("success {}", temp_output_filename.to_str().unwrap());
-                            if let Err(e) = std::fs::copy(temp_output_filename, &output_file) {
+                            if let Err(e) = std::fs::copy(temp_output_filename, output_file) {
                                 MgAction::DoneDownload(drivers::Error::IOError(e))
                             } else {
                                 MgAction::DoneDownload(drivers::Error::Success)
@@ -234,7 +258,8 @@ impl MgApplication {
             message,
         );
         dialog.set_property_secondary_text(Some(reason));
-        dialog.run();
+        dialog.set_modal(true);
+        dialog.show();
         dialog.close();
     }
 
@@ -309,7 +334,7 @@ impl MgApplication {
         utils::setup_text_combo(&self.model_combo, &self.model_store);
         utils::setup_text_combo(&self.port_combo, &self.port_store);
         self.populate_model_combo();
-        self.window.show_all();
+        self.window.show();
     }
 
     /// Rescan devices. On start and when new device is connected.

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
 <interface>
-  <requires lib="gtk+" version="3.12"/>
+  <requires lib="gtk" version="4.0"/>
   <object class="GtkApplicationWindow" id="main_window">
-    <property name="can_focus">False</property>
+    <property name="can_focus">0</property>
     <property name="title" translatable="yes">GPS Ami</property>
     <property name="default_width">400</property>
     <property name="default_height">400</property>
@@ -12,186 +11,91 @@
     </child>
     <child>
       <object class="GtkBox" id="content_box">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_left">10</property>
-        <property name="margin_right">10</property>
+        <property name="can_focus">0</property>
+        <property name="margin-start">10</property>
+        <property name="margin-end">10</property>
         <property name="margin_top">10</property>
         <property name="margin_bottom">10</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkFrame" id="gps_device_frame">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label_xalign">0</property>
-            <property name="shadow_type">none</property>
+            <property name="can_focus">0</property>
             <child>
-              <object class="GtkAlignment" id="alignment1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="left_padding">12</property>
+              <object class="GtkBox" id="box3">
+                <property name="can_focus">0</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">3</property>
                 <child>
-                  <object class="GtkBox" id="box3">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="orientation">vertical</property>
-                    <property name="spacing">3</property>
-                    <child>
-                      <object class="GtkComboBox" id="model_combo">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBox" id="port_combo">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="erase_checkbtn">
-                        <property name="label" translatable="yes">_Erase after download</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="draw_indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
+                  <object class="GtkComboBox" id="model_combo">
+                    <property name="can_focus">0</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkComboBox" id="port_combo"/>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="erase_checkbtn">
+                    <property name="label" translatable="yes">_Erase after download</property>
+                    <property name="use_underline">1</property>
                   </object>
                 </child>
               </object>
             </child>
             <child type="label">
               <object class="GtkLabel" id="label1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">0</property>
                 <property name="label" translatable="yes">&lt;b&gt;GPS Device&lt;/b&gt;</property>
-                <property name="use_markup">True</property>
+                <property name="use_markup">1</property>
               </object>
             </child>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="padding">8</property>
-            <property name="position">0</property>
-          </packing>
         </child>
         <child>
           <object class="GtkFrame" id="output_frame">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label_xalign">0</property>
-            <property name="shadow_type">none</property>
+            <property name="can_focus">0</property>
             <child>
-              <object class="GtkAlignment" id="alignment3">
+              <object class="FileChooserButton" id="output_dir_chooser">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="left_padding">12</property>
-                <child>
-                  <object class="GtkFileChooserButton" id="output_dir_chooser">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="action">select-folder</property>
-                  </object>
-                </child>
               </object>
             </child>
             <child type="label">
               <object class="GtkLabel" id="label3">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">0</property>
                 <property name="label" translatable="yes">&lt;b&gt;Output&lt;/b&gt;</property>
-                <property name="use_markup">True</property>
+                <property name="use_markup">1</property>
               </object>
             </child>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="padding">8</property>
-            <property name="position">1</property>
-          </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkBox">
+            <property name="vexpand">True</property>
+            <property name="orientation">vertical</property>
+          </object>
         </child>
         <child>
           <object class="GtkBox" id="box1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">0</property>
             <property name="spacing">4</property>
-            <property name="homogeneous">True</property>
+            <property name="homogeneous">1</property>
             <child>
               <object class="GtkButton" id="download_btn">
                 <property name="label" translatable="yes">Download</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="receives_default">1</property>
                 <property name="action_name">win.download</property>
               </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">4</property>
-                <property name="pack_type">end</property>
-                <property name="position">0</property>
-              </packing>
             </child>
             <child>
               <object class="GtkButton" id="erase_btn">
                 <property name="label" translatable="yes">Erase</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="receives_default">1</property>
                 <property name="action_name">win.erase</property>
               </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">4</property>
-                <property name="pack_type">end</property>
-                <property name="position">1</property>
-              </packing>
             </child>
             <child>
-              <object class="GtkAlignment">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <placeholder/>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
             </child>
           </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="padding">8</property>
-            <property name="pack_type">end</property>
-            <property name="position">3</property>
-          </packing>
         </child>
       </object>
     </child>

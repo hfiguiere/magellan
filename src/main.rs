@@ -12,22 +12,22 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 extern crate dirs;
-extern crate gio;
-extern crate glib;
-extern crate glib_sys;
-extern crate gtk;
 extern crate gudev;
 extern crate libudev;
 extern crate rustc_serialize;
 
 use gettextrs::*;
-use gio::prelude::*;
+use gtk4 as gtk;
+use gtk4::gio;
+use gtk4::gio::prelude::*;
+use gtk4::glib;
 
 use mgapplication::MgApplication;
 
 mod config;
 mod devices;
 mod drivers;
+mod file_chooser_button;
 mod gpsbabel;
 mod mgapplication;
 mod static_resources;
@@ -52,6 +52,8 @@ fn init() {
         if gtk::init().is_err() {
             panic!("Failed to initialize GTK.");
         }
+
+        file_chooser_button::FileChooserButton::static_type();
 
         setlocale(LocaleCategory::LcAll, "");
         bindtextdomain("gpsami", config::LOCALEDIR);
